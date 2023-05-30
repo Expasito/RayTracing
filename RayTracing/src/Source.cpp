@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
-
+#include <thread>
 
 typedef struct {
 	double x;
@@ -131,16 +131,34 @@ Face createFace(Point start, double width, double height, double depth) {
 	return {one,two};
 
 }
+// there should only be 4 points because a sqaure has 4 points
+// order is top-left, top-right, bottom-left, bottom-right
+Face createFace(Point points[]) {
+	Triangle one = {points[0],points[2],points[3]};
+	Triangle two = {points[0], points[1], points[3]};
+	return { one,two };
+}
 int main() {
 
 	std::vector<Face> faces;
 	std::vector<Triangle> triangles;
-	Face a = createFace({ 1,1,0 }, 1, 1, 1);
-	Face b = createFace({ -1,-2,1 }, 2, .5, 1);
-	Face c = createFace({-1,-3,1}, 3, 3, 4);
-	faces.push_back(a);
+	Point arr[] = {{-1,1,1},{1,1,1},{-1,-1,1},{1,-1,1}};
+	Face a = createFace(arr);
+	Point arr2[] = {
+		{1,1,2},
+		{1,1,0},
+		{1,-1,1},
+		{1,-1,0}
+	};
+	Face b = createFace(arr2);
+	//std::cout << a.x.p1.x << "\n";
+	//Face a = createFace({ 1,1,0 }, 1, 1, 1);
+	//Face b = createFace({ 1,1,0 }, 1, 1, 1);
+	//Face b = createFace({ -1,-2,1 }, 2, .5, 1);
+	//Face c = createFace({-1,-3,1}, 3, 3, 4);
+	//faces.push_back(a);
 	faces.push_back(b);
-	faces.push_back(c);
+	//faces.push_back(c);
 
 	for (Face const & f : faces) {
 		triangles.push_back(f.x);
@@ -149,25 +167,26 @@ int main() {
 
 
 	// camera
-	Point camera = { 0,0,0 };
+	Point camera = { 0,0,5 };
 
 	// picture size
-	const int length = 1080;
-	const int width = 1080;
+	const int length = 300;
+	const int width = 300;
 	const double scale = length/10;
 	bool inside = false;
-	//short out_arr[length * width][3];
+	short out_arr[length * width][3];
 
 
 
 
-	//FILE* file = fopen("src/Image.ppm", "w");
-	//if (file == NULL) {
-	//	printf("Failed to open");
-	//}
-	//fprintf(file, "P3\n%d %d\n255\n", width, length);
+	FILE* file = fopen("src/Image.ppm", "w");
+	if (file == NULL) {
+		printf("Failed to open");
+	}
+	fprintf(file, "P3\n%d %d\n255\n", width, length);
 
 	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
 	int index = 0;
 	for (int i = length/2; i > -length/2; i--) {
 		for (int j = -width/2; j < width/2; j++) {
@@ -190,16 +209,16 @@ int main() {
 			}
 
 			if (found) {
-				//out_arr[index][0] = 100;
-				//out_arr[index][1] = 100;
-				//out_arr[index][2] = 40;
+				out_arr[index][0] = 100;
+				out_arr[index][1] = 100;
+				out_arr[index][2] = 100;
 				//fprintf(file, "%d %d %d\n", 100, 0, 0);
 			}
 			else {
 				//fprintf(file, "0 0 50\n");
-				//out_arr[index][0] = 255;
-				//out_arr[index][1] = 255;
-				//out_arr[index][2] = 255;
+				out_arr[index][0] = 255;
+				out_arr[index][1] = 255;
+				out_arr[index][2] = 255;
 			}
 			index++;
 			
@@ -208,10 +227,10 @@ int main() {
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
 	std::cerr << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "[ms]" << std::endl;
-	/*for (int i = 0; i < index; i++) {
+	for (int i = 0; i < index; i++) {
 		fprintf(file, "%d %d %d\n", out_arr[i][0], out_arr[i][1], out_arr[i][2]);
 	}
-	fclose(file);*/
+	fclose(file);
 
 
 }
