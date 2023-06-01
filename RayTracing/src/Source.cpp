@@ -235,18 +235,20 @@ int main() {
 		"layout (location = 0) in vec3 pos;\n"
 		"layout (location = 1) in vec2 textCoord;\n"
 
-		"out vec2 TexCord;"
+		"out vec2 TexCord;\n"
 		"void main()\n"
 		"{\n"
-		"TexCord=textCoord;\n"
+		"   TexCord=textCoord;\n"
 		"   gl_Position = vec4(pos,1);\n"
 		"}\0";
 	const char* fragmentShaderSource = "#version 330 core\n"
 		"out vec4 FragColor;\n"
 		"in vec2 TexCord;\n"
+		"uniform sampler2D texture1;\n"
 		"void main()\n"
 		"{\n"
-		"   FragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
+		"   FragColor = texture(texture1,TexCord);\n"
+		//"   FragColor = vec4(TexCord,1,1);\n"
 		"}\n\0";
 
 
@@ -288,22 +290,70 @@ int main() {
 	-1,-1,0,-1,-1,
 	-1,1,0,-1,1,
 	1,-1,0,1,-1,
+	-1,1,0,-1,1,
+	1,1,0,1,1,
+	1,-1,0,1,-1
 	};
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	int width_t = 1000;
+	int height_t = 1000;
+	int channels = 3;
+	//unsigned char data[] = {
+	//		255,255,255, 255,255,255, 255,255,255, 255,255,255, 255,255,255,
+	//		255,255,255, 255,255,255, 0,0,0, 0,0,0, 255,255,255,
+	//		0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0,
+	//		0,0,0, 0,0,0, 0,0,0, 255,255,255, 0,0,0,
+	//		0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0,
+	//};
+	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width_t * height_t * channels);
+	int c = 0;
+	for (int i = 0; i < width_t; i++) {
+		for (int j = 0; j < height_t; j++) {
+			//for (int k = 0; k < channels; k++) {
+			//	data[c] = 255;
+			//	c++;
+			//}
+			data[c++] = 255;
+			data[c++] = 0;
+			data[c++] = 25;
+		}
+	}
+	//data[6] = 255;
+	//data[7] = 255;
+	//data[8] = 255;
+
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	std::cout << "here\n";
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_t, height_t, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	std::cout << "here1\n";
+
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	// do position first
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
 	// texture coordinates
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(sizeof(float) * 3));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(sizeof(float) * 3));
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 
 	glBindVertexArray(VAO);
 
+
 	float buff[500];
 	glBufferSubData(GL_ARRAY_BUFFER, 0, 500, &buff);
 	std::cout << buff[0] << " " << buff[1] << "\n";
+
+	
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0, 0, 0, 1);
@@ -311,13 +361,13 @@ int main() {
 
 
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
 	glfwTerminate();
-
+	std::cout << "here1\n";
 
 	FILE* file = fopen("src/Image.ppm", "w");
 	if (file == NULL) {
