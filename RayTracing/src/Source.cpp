@@ -165,24 +165,54 @@ void shaderBuildStatus(unsigned int shader, int result) {
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
+
+Point camera = { 0,0,-.25 };
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		camera.x -= .01;
+	}
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		camera.x += .01;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		camera.z += .01;
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		camera.z -= .01;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+		camera.y += .01;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+		camera.y -= .01;
+	}
 
 
 }
 int main() {
 
+
+
+	/*
+	*  Need to fix camera orientation, y axis is upside down
+	* only need to see the image once, so fix the way we write to the buffer
+	* make it so the camera can move around without the image being distorted
+	* allow for other shapes
+	*/
 	std::vector<Face> faces;
 	std::vector<Triangle> triangles;
 	Point arr[] = { {-1,1,1},{1,1,1},{-1,-1,1},{1,-1,1} };
 	Face a = createFace(arr);
 	Point arr2[] = {
-		{1,1,2},
-		{1,1,0},
-		{1,-1,1},
-		{1,-1,0}
+		{-1,-1,1},
+		{1,1,1},
+		{-1,-1,1},
+		{1,-1,1}
 	};
 	Face b = createFace(arr2);
 	//std::cout << a.x.p1.x << "\n";
@@ -198,23 +228,23 @@ int main() {
 		triangles.push_back(f.x);
 		triangles.push_back(f.y);
 	}
-	triangles.push_back({ {-2,-1,0},{-1,1,0},{1,-1,5} });
+	triangles.push_back({ {-1,-1,0},{-1,1,0},{1,-1,0} });
 
 	// camera
-	Point camera = { 0,0,-.25 };
+	
 
 	// picture size
-	const int length = 300;
-	const int width = 300;
+	const int length = 800;
+	const int width = 800;
 	const double scale = length / 10;
 	bool inside = false;
-	short out_arr[length * width][3];
+	//short out_arr[length * width][3];
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GLFWwindow* window = glfwCreateWindow(800, 800, "Window", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(length, width, "Window", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "failed to create\n";
 		return -1;
@@ -226,7 +256,7 @@ int main() {
 		return -1;
 	}
 
-	glViewport(0, 0, 800, 800);
+	glViewport(0, 0, length, width);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetKeyCallback(window, keycallback);
@@ -301,39 +331,28 @@ int main() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	int width_t = 1000;
-	int height_t = 1000;
+	int width_t = length;
+	int height_t = width;
 	int channels = 3;
-	//unsigned char data[] = {
-	//		255,255,255, 255,255,255, 255,255,255, 255,255,255, 255,255,255,
-	//		255,255,255, 255,255,255, 0,0,0, 0,0,0, 255,255,255,
-	//		0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0,
-	//		0,0,0, 0,0,0, 0,0,0, 255,255,255, 0,0,0,
-	//		0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0,
-	//};
+
 	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width_t * height_t * channels);
 	int c = 0;
 	for (int i = 0; i < width_t; i++) {
 		for (int j = 0; j < height_t; j++) {
-			//for (int k = 0; k < channels; k++) {
-			//	data[c] = 255;
-			//	c++;
-			//}
-			data[c++] = 255;
+
 			data[c++] = 0;
-			data[c++] = 25;
+			data[c++] = 0;
+			data[c++] = 0;
 		}
 	}
-	//data[6] = 255;
-	//data[7] = 255;
-	//data[8] = 255;
+
 
 	unsigned int texture;
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	std::cout << "here\n";
+
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_t, height_t, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	std::cout << "here1\n";
+
 
 	glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -349,16 +368,57 @@ int main() {
 	glBindVertexArray(VAO);
 
 
-	float buff[500];
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 500, &buff);
-	std::cout << buff[0] << " " << buff[1] << "\n";
-
-	
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		int index = 0;
+		for (int i = length / 2; i > -length / 2; i--) {
+			for (int j = -width / 2; j < width / 2; j++) {
+
+				Triangle out;
+				double mint = 1000000000;
+				bool found = false;
+				// need to figure out this part
+				Point pixel = { j+camera.x,i +camera.y ,camera.z + 1 };
+				for (int k = 0; k < triangles.size(); k++) {
+					Triangle tr = triangles[k];
+					abcd eq = calc(&tr);
+					double t = getT(&eq, &camera, &pixel);
+					//std::cout << t << "\n";
+					Point I = getI(t, &camera, &pixel);
+					//std::cout << I << " " << t << "\n";
+					bool inside = IinsidePlane(&I, &tr);
+					if (inside && t < mint && t>0) {
+						out = tr;
+						mint = t;
+						found = true;
+					}
+				}
+
+				// update the colors here
+				if (found) {
+					data[index++] = 255;
+					data[index++] = 100;
+					data[index++] = 100;
+
+				}
+				else {
+					//fprintf(file, "0 0 50\n");
+					data[index++] = 0;
+					data[index++] = 0;
+					data[index++] = 0;
+
+				}
+				
+
+			}
+		}
+
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_t, height_t, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
 
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -369,83 +429,83 @@ int main() {
 	glfwTerminate();
 	std::cout << "here1\n";
 
-	FILE* file = fopen("src/Image.ppm", "w");
-	if (file == NULL) {
-		printf("Failed to open");
-	}
-	fprintf(file, "P3\n%d %d\n255\n", width, length);
+	//FILE* file = fopen("src/Image.ppm", "w");
+	//if (file == NULL) {
+	//	printf("Failed to open");
+	//}
+	//fprintf(file, "P3\n%d %d\n255\n", width, length);
 
 
-	
-	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+	//
+	//std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
 
-	//Triangle out;
-	//double mint = 1000000000;
-	//bool found = false;
-	//Point pixel = { 0,0,camera.z + 1 };
-	//for (int k = 0; k < triangles.size(); k++) {
-	//	Triangle tr = triangles[k];
-	//	abcd eq = calc(&tr);
-	//	double t = getT(&eq, &camera, &pixel);
-	//	//std::cout << t << "\n";
-	//	Point I = getI(t, &camera, &pixel);
-	//	std::cout << I << " " << t << "\n";
-	//	bool inside = IinsidePlane(&I, &tr);
-	//	if (inside && t < mint && t>0) {
-	//		out = tr;
-	//		mint = t;
-	//		found = true;
+	////Triangle out;
+	////double mint = 1000000000;
+	////bool found = false;
+	////Point pixel = { 0,0,camera.z + 1 };
+	////for (int k = 0; k < triangles.size(); k++) {
+	////	Triangle tr = triangles[k];
+	////	abcd eq = calc(&tr);
+	////	double t = getT(&eq, &camera, &pixel);
+	////	//std::cout << t << "\n";
+	////	Point I = getI(t, &camera, &pixel);
+	////	std::cout << I << " " << t << "\n";
+	////	bool inside = IinsidePlane(&I, &tr);
+	////	if (inside && t < mint && t>0) {
+	////		out = tr;
+	////		mint = t;
+	////		found = true;
+	////	}
+	////}
+
+	////std::exit(0);
+	//int index = 0;
+	//for (int i = length/2; i > -length/2; i--) {
+	//	for (int j = -width/2; j < width/2; j++) {
+
+	//		Triangle out;
+	//		double mint = 1000000000;
+	//		bool found = false;
+	//		Point pixel = { j / scale,i / scale ,camera.z + 1 };
+	//		for (int k = 0; k < triangles.size(); k++) {
+	//			Triangle tr = triangles[k];
+	//			abcd eq = calc(&tr);
+	//			double t = getT(&eq, &camera, &pixel);
+	//			//std::cout << t << "\n";
+	//			Point I = getI(t, &camera, &pixel);
+	//			//std::cout << I << " " << t << "\n";
+	//			bool inside = IinsidePlane(&I, &tr);
+	//			if (inside && t < mint && t>0) {
+	//				out = tr;
+	//				mint = t;
+	//				found = true;
+	//			}
+	//		}
+
+	//		if (found) {
+	//			out_arr[index][0] = 100;
+	//			out_arr[index][1] = 100;
+	//			out_arr[index][2] = 100;
+	//			//fprintf(file, "%d %d %d\n", 100, 0, 0);
+	//		}
+	//		else {
+	//			//fprintf(file, "0 0 50\n");
+	//			out_arr[index][0] = 255;
+	//			out_arr[index][1] = 255;
+	//			out_arr[index][2] = 255;
+	//		}
+	//		index++;
+	//		
 	//	}
 	//}
+	//std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
-	//std::exit(0);
-	int index = 0;
-	for (int i = length/2; i > -length/2; i--) {
-		for (int j = -width/2; j < width/2; j++) {
-
-			Triangle out;
-			double mint = 1000000000;
-			bool found = false;
-			Point pixel = { j / scale,i / scale ,camera.z + 1 };
-			for (int k = 0; k < triangles.size(); k++) {
-				Triangle tr = triangles[k];
-				abcd eq = calc(&tr);
-				double t = getT(&eq, &camera, &pixel);
-				//std::cout << t << "\n";
-				Point I = getI(t, &camera, &pixel);
-				//std::cout << I << " " << t << "\n";
-				bool inside = IinsidePlane(&I, &tr);
-				if (inside && t < mint && t>0) {
-					out = tr;
-					mint = t;
-					found = true;
-				}
-			}
-
-			if (found) {
-				out_arr[index][0] = 100;
-				out_arr[index][1] = 100;
-				out_arr[index][2] = 100;
-				//fprintf(file, "%d %d %d\n", 100, 0, 0);
-			}
-			else {
-				//fprintf(file, "0 0 50\n");
-				out_arr[index][0] = 255;
-				out_arr[index][1] = 255;
-				out_arr[index][2] = 255;
-			}
-			index++;
-			
-		}
-	}
-	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-	std::cerr << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "[ms]" << std::endl;
-	for (int i = 0; i < index; i++) {
-		fprintf(file, "%d %d %d\n", out_arr[i][0], out_arr[i][1], out_arr[i][2]);
-	}
-	fclose(file);
+	//std::cerr << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "[ms]" << std::endl;
+	//for (int i = 0; i < index; i++) {
+	//	fprintf(file, "%d %d %d\n", out_arr[i][0], out_arr[i][1], out_arr[i][2]);
+	//}
+	//fclose(file);
 
 
 }
