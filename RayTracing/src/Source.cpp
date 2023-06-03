@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <chrono>
@@ -166,7 +167,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
-Point camera = { 0,0,-.25 };
+Point camera = { 0,0,0 };
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -317,12 +318,12 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	//order: x,y,z,u,v
 	float vertices[] = {
-	-1,-1,0,-1,-1,
-	-1,1,0,-1,1,
-	1,-1,0,1,-1,
-	-1,1,0,-1,1,
+	-1,-1,0,0,0,
+	-1,1,0,0,1,
+	1,-1,0,1,0,
+	-1,1,0,0,1,
 	1,1,0,1,1,
-	1,-1,0,1,-1
+	1,-1,0,1,0
 	};
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
@@ -367,7 +368,7 @@ int main() {
 
 	glBindVertexArray(VAO);
 
-
+	float theta = 0.0;
 
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0, 0, 0, 1);
@@ -381,7 +382,12 @@ int main() {
 				double mint = 1000000000;
 				bool found = false;
 				// need to figure out this part
-				Point pixel = { j+camera.x,i +camera.y ,camera.z + 1 };
+				Point pixel = { (j+camera.x),-i + camera.y ,(camera.z + 14)};
+				//theta += .001;
+				if (theta > 360) {
+					theta = 0.0;
+				}
+
 				for (int k = 0; k < triangles.size(); k++) {
 					Triangle tr = triangles[k];
 					abcd eq = calc(&tr);
@@ -402,6 +408,7 @@ int main() {
 					data[index++] = 255;
 					data[index++] = 100;
 					data[index++] = 100;
+					//std::cout << 1 << "";
 
 				}
 				else {
@@ -409,21 +416,46 @@ int main() {
 					data[index++] = 0;
 					data[index++] = 0;
 					data[index++] = 0;
+					//std::cout << 0 << "";
 
 				}
 				
 
 			}
+			//std::cout << "\n";
 		}
+
+		//std::cout << "\n\n\n\n";
+		
+
 
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_t, height_t, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
+		//c = 0;
+		//for (int i = 0; i < width_t; i++) {
+		//	for (int j = 0; j < height_t; j++) {
+		//		if ((int)data[c++] == 255) {
+		//			std::cout << 1 << "";
+		//		}
+		//		else {
+		//			std::cout << 0 << "";
+		//		}
+		//		//std::cout << (int)data[c++] << " ";
+		//		c++;
+		//		c++;
+		//	}
+		//	std::cout << "\n";
+		//}
+		
+
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		//std::exit(1);
+		
 	}
 
 	glfwTerminate();
