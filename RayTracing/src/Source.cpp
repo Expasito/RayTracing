@@ -6,6 +6,8 @@
 #include <chrono>
 #include <thread>
 #include <glad/glad.h>
+#include <glm/vec3.hpp>
+#include <glm/glm.hpp>
 //#include <GLFW/glfw3.h>
 #include <GLFW/glfw3.h>
 
@@ -46,6 +48,10 @@ Point subtract(Point* one, Point* two) {
 	return out;
 }
 
+glm::vec3 subtract(glm::vec3* one, glm::vec3* two) {
+	return { one->x - two->x,one->y - two->y,one->z - two->z };
+}
+
 Point cross(Point* one, Point* two) {
 	Point out = {
 		one->y*two->z-one->z*two->y,
@@ -72,6 +78,17 @@ double areaTri(Point* a, Point* b, Point* c) {
 
 }
 
+double areaTri(glm::vec3* a, glm::vec3* b, glm::vec3* c) {
+	glm::vec3 diff1 = { a->x - b->x,a->y - b->y,a->z - b->z };
+	glm::vec3 diff2 = { a->x - c->x,a->y - c->y,a->z - c->z };
+	//Point normal = cross(&diff1, &diff2);
+	glm::vec3 normal = { diff1.y * diff2.z - diff1.z * diff2.y,
+		diff1.z * diff2.x - diff1.x * diff2.z,
+		diff1.x * diff2.y - diff1.y * diff2.x };
+	double mag = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+	return mag / 2.0;
+}
+
 /*
 * calc takes in a Triangle and returns the plane equation from the Triangle's points
 */
@@ -81,6 +98,18 @@ abcd calc(Triangle* p) {
 
 
 	Point normal = cross(&diff1, &diff3);
+	abcd out = { -normal.x,-normal.y,-normal.z,
+	normal.x * p->p1.x + normal.y * p->p1.y + normal.z * p->p1.z
+	};
+	return out;
+}
+
+abcd calc(Tri* p) {
+	glm::vec3 diff1 = subtract(&p->p3, &p->p1);
+	glm::vec3 diff3 = subtract(&p->p2, &p->p1);
+
+
+	glm::vec3 normal = glm::cross(diff1, diff3);
 	abcd out = { -normal.x,-normal.y,-normal.z,
 	normal.x * p->p1.x + normal.y * p->p1.y + normal.z * p->p1.z
 	};
@@ -102,9 +131,26 @@ double getT(abcd* coef, Point* camera, Point* pixel) {
 	}
 }
 
+double getT(abcd* coef, glm::vec3* camera, glm::vec3* pixel) {
+	double top = -(coef->a * camera->x + coef->b * camera->y + coef->c * camera->z + coef->d);
+	double bottom = (coef->a * (-camera->x + pixel->x) + coef->b * (-camera->y + pixel->y) + coef->c * (-camera->z + pixel->z));
+	//std::cout << top << " " << bottom << " " << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
+	if (bottom == 0) {
+		return 10000000;
+	}
+	else {
+		return top / bottom;
+	}
+}
+
+
 Point getI(double t, Point* camera, Point* pixel) {
 	Point out = {(1-t)*camera->x+t*pixel->x, (1-t)*camera->y + t*pixel->y, (1-t)*camera->z + t*pixel->z};
 	return out;
+}
+
+glm::vec3 getI(double t, glm::vec3* camera, glm::vec3* pixel) {
+	return { (1 - t) * camera->x + t * pixel->x, (1 - t) * camera->y + t * pixel->y, (1 - t) * camera->z + t * pixel->z };
 }
 
 
@@ -118,6 +164,17 @@ bool IinsidePlane(Point* I, Triangle* plane) {
 	}
 	return false;
 
+}
+
+bool IinsidePlane(glm::vec3* I, Tri* plane) {
+	double area1 = areaTri(I, &plane->p1, &plane->p2);
+	double area2 = areaTri(I, &plane->p2, &plane->p3);
+	double area3 = areaTri(I, &plane->p1, &plane->p3);
+	double area = areaTri(&plane->p1, &plane->p2, &plane->p3);
+	if (fabs(area1 + area2 + area3 - area) < 0.0001) {
+		return true;
+	}
+	return false;
 }
 
 double sqrt2(double val) {
@@ -195,6 +252,59 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 
 }
+
+
+
+class Object {
+public:
+	virtual double getDist(glm::vec3 point, glm::vec3 dir) = 0;
+private:
+};
+
+class Tri : public Object {
+public:
+	glm::vec3 p1 = {0,0,0};
+	glm::vec3 p2 = {0,0,0};
+	glm::vec3 p3 = {0,0,0};
+	Tri() {
+		p1 = { -1,-1,0 };
+		p2 = { 1,-1,0 };
+		p3 = { 0,1,0 };
+	}
+	Tri(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_) {
+		p1 = p1_;
+		p2 = p2_;
+		p3 = p3_;
+	}
+	double getDist(glm::vec3 point, glm::vec3 dir) {
+		//abcd eq = calc(this);
+		//double t = getT(&eq, &point, &point);
+		////std::cout << t << "\n";
+		//glm::vec3 I = getI(t, &point, &dir);
+		////std::cout << I << " " << t << "\n";
+		//bool inside = IinsidePlane(&I, this);
+
+		//if (inside) {
+		//	return t;
+		//}
+		//else {
+		//	return -1;
+		//}
+	}
+private:
+
+};
+
+class Sphere : public Object{
+public:
+	Sphere() {
+
+	};
+	double getDist(glm::vec3 point, glm::vec3 dir) {
+
+	}
+private:
+}
 int main() {
 
 
@@ -229,7 +339,9 @@ int main() {
 		triangles.push_back(f.x);
 		triangles.push_back(f.y);
 	}
-	triangles.push_back({ {-1,-1,0},{-1,1,0},{1,-1,0} });
+	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1} });
+
+	triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
 
 	// camera
 	
@@ -382,7 +494,10 @@ int main() {
 				double mint = 1000000000;
 				bool found = false;
 				// need to figure out this part
-				Point pixel = { (j+camera.x),-i + camera.y ,(camera.z + 14)};
+				//Point pixel_start = { j*sin(10) + camera.x,-i*cos(10) + camera.y,camera.z + 14};
+				//sin(theta * 3.1415 / 180.0)
+				//Point pixel = { j ,-i, 10};
+				Point pixel = {(j-camera.x)*cos(theta)-(i-camera.z)*sin(theta)+camera.x,0,(j-camera.x)*sin(theta)+(i-camera.x)*cos(theta)+camera.z};
 				//theta += .001;
 				if (theta > 360) {
 					theta = 0.0;
