@@ -11,196 +11,219 @@
 //#include <GLFW/glfw3.h>
 #include <GLFW/glfw3.h>
 
-typedef struct {
-	double x;
-	double y;
-	double z;
-} Point;
 
-typedef struct {
-	Point p1;
-	Point p2;
-	Point p3;
-} Triangle;
+
+
+
+
+class Object {
+public:
+	virtual double getDist(glm::vec3 point, glm::vec3 dir) = 0;
+private:
+};
+
+struct plane {
+	glm::vec3 n;
+	glm::vec3 p;
+};
+
+struct ray {
+	glm::vec3 o;
+	glm::vec3 d;
+};
+
+class Triangle : public Object {
+public:
+	glm::vec3 p1 = { 0,0,0 };
+	glm::vec3 p2 = { 0,0,0 };
+	glm::vec3 p3 = { 0,0,0 };
+	Triangle() {
+		p1 = { -1,-1,0 };
+		p2 = { 1,-1,0 };
+		p3 = { 0,1,0 };
+	}
+	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_) {
+		p1 = p1_;
+		p2 = p2_;
+		p3 = p3_;
+	}
+	double getDist(glm::vec3 point, glm::vec3 dir) {
+		glm::vec3 b = p1 - p2;
+		glm::vec3 c = p1 - p3;
+		glm::vec3 normal = glm::cross(b, c);
+
+		// this is our plane equation
+		plane p = { normal,p1 };
+
+		double t = glm::dot((p1 - point), normal) / glm::dot(dir, normal);
+
+		// now see if the point is inside the triangle
+		glm::vec3 I = getI(t, &point, &dir);
+
+		bool inside = IinsidePlane(&I);
+
+		if (inside) {
+			return t;
+		}
+		else {
+			return -t;
+		}
+
+
+		//std::cout << t << "\n";
+		//return t;
+
+		abcd eq = calc();
+		//std::cout << eq.a << " " << eq.b << " " << eq.c << " " << eq.d << "\n";
+		t = getT(&eq, &point, &dir);
+		//std::cout << t << "\n";
+		I = getI(t, &point, &dir);
+		////std::cout << I << " " << t << "\n";
+		inside = IinsidePlane(&I);
+		//std::cout << t << "\n";
+		//return (t);
+		if (inside) {
+			return t;
+		}
+		else {
+			return -1;
+		}
+		return 1.0;
+	}
+	typedef struct {
+		double a, b, c, d;
+	} abcd;
+	glm::vec3 subtract(glm::vec3* one, glm::vec3* two) {
+		return { one->x - two->x,one->y - two->y,one->z - two->z };
+	}
+
+	glm::vec3 getI(double t, glm::vec3* camera, glm::vec3* pixel) {
+		return { (1 - t) * camera->x + t * pixel->x, (1 - t) * camera->y + t * pixel->y, (1 - t) * camera->z + t * pixel->z };
+	}
+
+	abcd calc() {
+		glm::vec3 diff1 = subtract(&this->p3, &this->p1);
+		glm::vec3 diff3 = subtract(&this->p2, &this->p1);
+
+
+		glm::vec3 normal = glm::cross(diff1, diff3);
+		abcd out = { -normal.x,-normal.y,-normal.z,
+		normal.x * this->p1.x + normal.y * this->p1.y + normal.z * this->p1.z
+		};
+		return out;
+	}
+	
+	double getT(abcd* coef, glm::vec3* camera, glm::vec3* pixel) {
+		//double top = -(coef->a * camera->x + coef->b * camera->y + coef->c * camera->z + coef->d);
+		//double bottom = (coef->a * (-camera->x + pixel->x) + coef->b * (-camera->y + pixel->y) + coef->c * (-camera->z + pixel->z));
+		////std::cout << top << " " << bottom << " " << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
+		//if (bottom == 0) {
+		//	return 10000000;
+		//}
+		//else {
+		//	return top / bottom;
+		//}
+		glm::vec3 p2 = { pixel->x - camera->x,pixel->y - camera->y,pixel->z - camera->z };
+		double t = -coef->d / (coef->a * p2.x + coef->b * p2.y + coef->c);
+		return t;
+	}
+	double areaTri(glm::vec3* a, glm::vec3* b, glm::vec3* c) {
+		glm::vec3 diff1 = { a->x - b->x,a->y - b->y,a->z - b->z };
+		glm::vec3 diff2 = { a->x - c->x,a->y - c->y,a->z - c->z };
+		//Point normal = cross(&diff1, &diff2);
+		glm::vec3 normal = { diff1.y * diff2.z - diff1.z * diff2.y,
+			diff1.z * diff2.x - diff1.x * diff2.z,
+			diff1.x * diff2.y - diff1.y * diff2.x };
+		double mag = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+		return mag / 2.0;
+	}
+
+	bool IinsidePlane(glm::vec3* I) {
+	double area1 = areaTri(I, &this->p1, &this->p2);
+	double area2 = areaTri(I, &this->p2, &this->p3);
+	double area3 = areaTri(I, &this->p1, &this->p3);
+	double area = areaTri(&this->p1, &this->p2, &this->p3);
+	if (fabs(area1 + area2 + area3 - area) < 0.0001) {
+		return true;
+	}
+	return false;
+}
+private:
+
+};
+
+class Sphere : public Object {
+public:
+	Sphere() {
+
+	};
+	double getDist(glm::vec3 point, glm::vec3 dir) {
+
+	}
+private:
+};
+
 
 typedef struct {
 	Triangle x;
 	Triangle y;
 } Face;
 
-typedef struct {
-	double a, b, c, d;
-} abcd;
-
-typedef struct {
-	double t;
-	abcd eq;
-} Node;
-
-typedef struct {
-	Point camera;
-
-} Ray;
 
 
-Point subtract(Point* one, Point* two) {
-	Point out = {one->x-two->x,one->y-two->y,one->z-two->z};
-	return out;
-}
 
-glm::vec3 subtract(glm::vec3* one, glm::vec3* two) {
-	return { one->x - two->x,one->y - two->y,one->z - two->z };
-}
 
-Point cross(Point* one, Point* two) {
-	Point out = {
-		one->y*two->z-one->z*two->y,
-		one->z*two->x-one->x*two->z,
-		one->x*two->y-one->y*two->x
-	};
-	return out;
-}
+
+
+
+
+
+
 
 /*
-* areaTri calculates the area of a Triangle
+* Calculates the area of a triangle
 */
-double areaTri(Point* a, Point* b, Point* c) {
-	//Point diff1 = subtract(a, b);
-	//Point diff2 = subtract(a, c);
-	Point diff1 = { a->x - b->x,a->y - b->y,a->z - b->z };
-	Point diff2 = { a->x - c->x,a->y - c->y,a->z - c->z };
-	//Point normal = cross(&diff1, &diff2);
-	Point normal = { diff1.y * diff2.z - diff1.z * diff2.y,
-		diff1.z * diff2.x - diff1.x * diff2.z,
-		diff1.x * diff2.y - diff1.y * diff2.x };
-	double mag = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-	return mag / 2.0;
 
-}
-
-double areaTri(glm::vec3* a, glm::vec3* b, glm::vec3* c) {
-	glm::vec3 diff1 = { a->x - b->x,a->y - b->y,a->z - b->z };
-	glm::vec3 diff2 = { a->x - c->x,a->y - c->y,a->z - c->z };
-	//Point normal = cross(&diff1, &diff2);
-	glm::vec3 normal = { diff1.y * diff2.z - diff1.z * diff2.y,
-		diff1.z * diff2.x - diff1.x * diff2.z,
-		diff1.x * diff2.y - diff1.y * diff2.x };
-	double mag = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-	return mag / 2.0;
-}
 
 /*
 * calc takes in a Triangle and returns the plane equation from the Triangle's points
 */
-abcd calc(Triangle* p) {
-	Point diff1 = subtract(&p->p3, &p->p1);
-	Point diff3 = subtract(&p->p2, &p->p1);
 
 
-	Point normal = cross(&diff1, &diff3);
-	abcd out = { -normal.x,-normal.y,-normal.z,
-	normal.x * p->p1.x + normal.y * p->p1.y + normal.z * p->p1.z
-	};
-	return out;
-}
-
-abcd calc(Tri* p) {
-	glm::vec3 diff1 = subtract(&p->p3, &p->p1);
-	glm::vec3 diff3 = subtract(&p->p2, &p->p1);
 
 
-	glm::vec3 normal = glm::cross(diff1, diff3);
-	abcd out = { -normal.x,-normal.y,-normal.z,
-	normal.x * p->p1.x + normal.y * p->p1.y + normal.z * p->p1.z
-	};
-	return out;
-}
-
-double getT(abcd* coef, Point* camera, Point* pixel) {
-	//solve for Ix, Iy, Iz and find t
-	//std::cout << coef.a << " " << coef.b << " " << coef.c << " " << coef.d << "\n";
-	//std::cout << camera.x-pixel.x << " " << camera.y-pixel.y << " " << camera.z-pixel.z << " \n";
-	double top = -(coef->a * camera->x + coef->b * camera->y + coef->c * camera->z + coef->d);
-	double bottom = (coef->a * (-camera->x + pixel->x) + coef->b * (-camera->y + pixel->y) + coef->c * (-camera->z + pixel->z));
-	//std::cout << top << " " << bottom << " " << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
-	if (bottom == 0) {
-		return 10000000;
-	}
-	else {
-		return top / bottom;
-	}
-}
-
-double getT(abcd* coef, glm::vec3* camera, glm::vec3* pixel) {
-	double top = -(coef->a * camera->x + coef->b * camera->y + coef->c * camera->z + coef->d);
-	double bottom = (coef->a * (-camera->x + pixel->x) + coef->b * (-camera->y + pixel->y) + coef->c * (-camera->z + pixel->z));
-	//std::cout << top << " " << bottom << " " << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
-	if (bottom == 0) {
-		return 10000000;
-	}
-	else {
-		return top / bottom;
-	}
-}
 
 
-Point getI(double t, Point* camera, Point* pixel) {
-	Point out = {(1-t)*camera->x+t*pixel->x, (1-t)*camera->y + t*pixel->y, (1-t)*camera->z + t*pixel->z};
-	return out;
-}
-
-glm::vec3 getI(double t, glm::vec3* camera, glm::vec3* pixel) {
-	return { (1 - t) * camera->x + t * pixel->x, (1 - t) * camera->y + t * pixel->y, (1 - t) * camera->z + t * pixel->z };
-}
 
 
-bool IinsidePlane(Point* I, Triangle* plane) {
-	double area1 = areaTri(I, &plane->p1, &plane->p2);
-	double area2 = areaTri(I, &plane->p2, &plane->p3);
-	double area3 = areaTri(I, &plane->p1, &plane->p3);
-	double area = areaTri(&plane->p1, &plane->p2, &plane->p3);
-	if (fabs(area1 + area2 + area3 - area) < 0.0001) {
-		return true;
-	}
-	return false;
-
-}
-
-bool IinsidePlane(glm::vec3* I, Tri* plane) {
-	double area1 = areaTri(I, &plane->p1, &plane->p2);
-	double area2 = areaTri(I, &plane->p2, &plane->p3);
-	double area3 = areaTri(I, &plane->p1, &plane->p3);
-	double area = areaTri(&plane->p1, &plane->p2, &plane->p3);
-	if (fabs(area1 + area2 + area3 - area) < 0.0001) {
-		return true;
-	}
-	return false;
-}
-
-double sqrt2(double val) {
-	return 0;
-}
 
 
-Face createFace(Point start, double width, double height, double depth) {
-	Point tl = {start.x-width,start.y+height,start.z+depth};
-	Point tr = {start.x+width,start.y+height,start.z + depth };
-	Point bl = { start.x-width,start.y - height,start.z + depth };
-	Point br = {start.x+width,start.y - height,start.z + depth };
-	Triangle one = {tl,bl,br};
-	Triangle two = {tl,tr,br};
-	return {one,two};
 
-}
+
+
+
+
+
+// fix later
+//Face createFace(Point start, double width, double height, double depth) {
+//	Point tl = {start.x-width,start.y+height,start.z+depth};
+//	Point tr = {start.x+width,start.y+height,start.z + depth };
+//	Point bl = { start.x-width,start.y - height,start.z + depth };
+//	Point br = {start.x+width,start.y - height,start.z + depth };
+//	Triangle one = {tl,bl,br};
+//	Triangle two = {tl,tr,br};
+//	return {one,two};
+//
+//}
 // there should only be 4 points because a sqaure has 4 points
 // order is top-left, top-right, bottom-left, bottom-right
-Face createFace(Point points[]) {
+Face createFace(glm::vec3 points[]) {
 	Triangle one = {points[0],points[2],points[3]};
 	Triangle two = {points[0], points[1], points[3]};
 	return { one,two };
 }
 
-std::ostream& operator<<(std::ostream& os, const Point& vec)
+std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 {
 	os << vec.x << ' ' << vec.y << ' ' << vec.z;
 	return os;
@@ -224,7 +247,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
-Point camera = { 0,0,0 };
+glm::vec3 camera = { 0,0,0 };
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -255,56 +278,8 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 
 
-class Object {
-public:
-	virtual double getDist(glm::vec3 point, glm::vec3 dir) = 0;
-private:
-};
 
-class Tri : public Object {
-public:
-	glm::vec3 p1 = {0,0,0};
-	glm::vec3 p2 = {0,0,0};
-	glm::vec3 p3 = {0,0,0};
-	Tri() {
-		p1 = { -1,-1,0 };
-		p2 = { 1,-1,0 };
-		p3 = { 0,1,0 };
-	}
-	Tri(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_) {
-		p1 = p1_;
-		p2 = p2_;
-		p3 = p3_;
-	}
-	double getDist(glm::vec3 point, glm::vec3 dir) {
-		//abcd eq = calc(this);
-		//double t = getT(&eq, &point, &point);
-		////std::cout << t << "\n";
-		//glm::vec3 I = getI(t, &point, &dir);
-		////std::cout << I << " " << t << "\n";
-		//bool inside = IinsidePlane(&I, this);
 
-		//if (inside) {
-		//	return t;
-		//}
-		//else {
-		//	return -1;
-		//}
-	}
-private:
-
-};
-
-class Sphere : public Object{
-public:
-	Sphere() {
-
-	};
-	double getDist(glm::vec3 point, glm::vec3 dir) {
-
-	}
-private:
-}
 int main() {
 
 
@@ -317,9 +292,9 @@ int main() {
 	*/
 	std::vector<Face> faces;
 	std::vector<Triangle> triangles;
-	Point arr[] = { {-1,1,1},{1,1,1},{-1,-1,1},{1,-1,1} };
+	glm::vec3 arr[] = { {-1,1,1},{1,1,1},{-1,-1,1},{1,-1,1} };
 	Face a = createFace(arr);
-	Point arr2[] = {
+	glm::vec3 arr2[] = {
 		{-1,-1,1},
 		{1,1,1},
 		{-1,-1,1},
@@ -339,9 +314,9 @@ int main() {
 		triangles.push_back(f.x);
 		triangles.push_back(f.y);
 	}
-	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1} });
+	triangles.push_back({ {-1,-1,3},{-1,1,3},{1,-1,3} });
 
-	triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
+	//triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
 
 	// camera
 	
@@ -497,7 +472,8 @@ int main() {
 				//Point pixel_start = { j*sin(10) + camera.x,-i*cos(10) + camera.y,camera.z + 14};
 				//sin(theta * 3.1415 / 180.0)
 				//Point pixel = { j ,-i, 10};
-				Point pixel = {(j-camera.x)*cos(theta)-(i-camera.z)*sin(theta)+camera.x,0,(j-camera.x)*sin(theta)+(i-camera.x)*cos(theta)+camera.z};
+				glm::vec3 pixel = { j/scale,i/scale,camera.z+1 };
+				//glm::vec3 pixel = {(j-camera.x)*cos(theta)-(i-camera.z)*sin(theta)+camera.x,0,(j-camera.x)*sin(theta)+(i-camera.x)*cos(theta)+camera.z};
 				//theta += .001;
 				if (theta > 360) {
 					theta = 0.0;
@@ -505,17 +481,17 @@ int main() {
 
 				for (int k = 0; k < triangles.size(); k++) {
 					Triangle tr = triangles[k];
-					abcd eq = calc(&tr);
-					double t = getT(&eq, &camera, &pixel);
-					//std::cout << t << "\n";
-					Point I = getI(t, &camera, &pixel);
-					//std::cout << I << " " << t << "\n";
-					bool inside = IinsidePlane(&I, &tr);
-					if (inside && t < mint && t>0) {
+					//std::cout << tr.p1.x << " " << tr.p1.y << " " << tr.p1.z << "\n";
+					double t = tr.getDist(camera, pixel);
+					if (i == 0 && j == 0) {
+						std::cout << t << "\n";
+					}
+					if (t > 0 && t < mint) {
 						out = tr;
 						mint = t;
 						found = true;
 					}
+
 				}
 
 				// update the colors here
@@ -570,6 +546,8 @@ int main() {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		//std::exit(1);
+
+		//glfwSetWindowShouldClose(window, true);
 		
 	}
 
