@@ -14,7 +14,11 @@
 
 
 
-
+std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
+{
+	os << vec.x << ' ' << vec.y << ' ' << vec.z;
+	return os;
+}
 
 class Object {
 public:
@@ -47,7 +51,7 @@ public:
 		p2 = p2_;
 		p3 = p3_;
 	}
-	double getDist(glm::vec3 point, glm::vec3 dir) {
+	double getDist(glm::vec3 orgin, glm::vec3 dir) {
 		glm::vec3 b = p1 - p2;
 		glm::vec3 c = p1 - p3;
 		glm::vec3 normal = glm::cross(b, c);
@@ -55,18 +59,45 @@ public:
 		// this is our plane equation
 		plane p = { normal,p1 };
 
-		double t = glm::dot((p1 - point), normal) / glm::dot(dir, normal);
+		double t = glm::dot((p1 - orgin), normal) / glm::dot(dir, normal);
+		//if (dir.x+orgin.x == 0 && dir.y+orgin.y == 0) {
+		//	std::cout << "data\n";
+		//	std::cout << dir << "\n";
+		//	std::cout << normal << "\n";
+		//	std::cout << glm::dot(dir, normal) << "\n";
+		//	std::cout << p1 - orgin << "\n";
+		//	std::cout << dot(p1 - orgin, normal) << "\n";
+		//	std::cout << t << "\n";
+		//}
 
-		// now see if the point is inside the triangle
-		glm::vec3 I = getI(t, &point, &dir);
+		// get location of where the ray hits the plane
+		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+		if (dir.x + orgin.x == 0 && dir.y + orgin.y == 0) {
+			std::cout << I << "\n";
+			std::cout << t << "\n";
+			std::cout << orgin << "\n";
+			std::cout << dir << "\n";
+		}
+		// triangle intersection formula
+		glm::vec3 edge0 = p2 - p1;
+		glm::vec3 edge1 = p3 - p2;
+		glm::vec3 edge2 = p1 - p3;
+		glm::vec3 C0 = I - p1;
+		glm::vec3 C1 = I - p2;
+		glm::vec3 C2 = I - p3;
 
-		bool inside = IinsidePlane(&I);
+		bool inside =
+			glm::dot(normal, glm::cross(edge0, C0)) > 0.0 &&
+			glm::dot(normal, glm::cross(edge1, C1)) > 0.0 &&
+			glm::dot(normal, glm::cross(edge2, C2)) > 0.0;
+
+		//bool inside = IinsidePlane(&I);
 
 		if (inside) {
 			return t;
 		}
 		else {
-			return -t;
+			return -1;
 		}
 
 
@@ -75,9 +106,9 @@ public:
 
 		abcd eq = calc();
 		//std::cout << eq.a << " " << eq.b << " " << eq.c << " " << eq.d << "\n";
-		t = getT(&eq, &point, &dir);
+		t = getT(&eq, &orgin, &dir);
 		//std::cout << t << "\n";
-		I = getI(t, &point, &dir);
+		I = getI(t, &orgin, &dir);
 		////std::cout << I << " " << t << "\n";
 		inside = IinsidePlane(&I);
 		//std::cout << t << "\n";
@@ -90,6 +121,10 @@ public:
 		}
 		return 1.0;
 	}
+	double area(glm::vec3 point1, glm::vec3 point2, glm::vec3 point3) {
+		//return .5*(points.x)
+	}
+
 	typedef struct {
 		double a, b, c, d;
 	} abcd;
@@ -223,11 +258,7 @@ Face createFace(glm::vec3 points[]) {
 	return { one,two };
 }
 
-std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
-{
-	os << vec.x << ' ' << vec.y << ' ' << vec.z;
-	return os;
-}
+
 
 void shaderBuildStatus(unsigned int shader, int result) {
 	std::cout << "Result" << result << "\n";
@@ -253,24 +284,24 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 		glfwSetWindowShouldClose(window, true);
 
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		camera.x -= .01;
+		camera.x -= .1;
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		camera.x += .01;
+		camera.x += .1;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		camera.z += .01;
+		camera.z += .1;
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		camera.z -= .01;
+		camera.z -= .1;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		camera.y += .01;
+		camera.y -= .1;
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-		camera.y -= .01;
+		camera.y += .1;
 	}
 
 
@@ -314,7 +345,7 @@ int main() {
 		triangles.push_back(f.x);
 		triangles.push_back(f.y);
 	}
-	triangles.push_back({ {-1,-1,3},{-1,1,3},{1,-1,3} });
+	triangles.push_back({ {-1,-1,4},{-1,1,4},{1,-1,4} });
 
 	//triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
 
@@ -461,6 +492,8 @@ int main() {
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		//std::cout << camera << "\n";
+
 		int index = 0;
 		for (int i = length / 2; i > -length / 2; i--) {
 			for (int j = -width / 2; j < width / 2; j++) {
@@ -472,7 +505,7 @@ int main() {
 				//Point pixel_start = { j*sin(10) + camera.x,-i*cos(10) + camera.y,camera.z + 14};
 				//sin(theta * 3.1415 / 180.0)
 				//Point pixel = { j ,-i, 10};
-				glm::vec3 pixel = { j/scale,i/scale,camera.z+1 };
+				glm::vec3 pixel = { j/scale+camera.x,i/scale+camera.y,camera.z+1.0 };
 				//glm::vec3 pixel = {(j-camera.x)*cos(theta)-(i-camera.z)*sin(theta)+camera.x,0,(j-camera.x)*sin(theta)+(i-camera.x)*cos(theta)+camera.z};
 				//theta += .001;
 				if (theta > 360) {
@@ -482,11 +515,11 @@ int main() {
 				for (int k = 0; k < triangles.size(); k++) {
 					Triangle tr = triangles[k];
 					//std::cout << tr.p1.x << " " << tr.p1.y << " " << tr.p1.z << "\n";
-					double t = tr.getDist(camera, pixel);
-					if (i == 0 && j == 0) {
-						std::cout << t << "\n";
-					}
-					if (t > 0 && t < mint) {
+					double t = tr.getDist(camera, pixel-camera);
+					//if (i == 0 && j == 0) {
+					//	std::cout << t << "\n";
+					//}
+					if (t > 0.1 && t < mint) {
 						out = tr;
 						mint = t;
 						found = true;
