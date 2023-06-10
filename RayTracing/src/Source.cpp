@@ -41,23 +41,38 @@ public:
 	glm::vec3 p1 = { 0,0,0 };
 	glm::vec3 p2 = { 0,0,0 };
 	glm::vec3 p3 = { 0,0,0 };
+
+	// this is for other calculations
+	plane p;
+	glm::vec3 normal;
+
 	Triangle() {
 		p1 = { -1,-1,0 };
 		p2 = { 1,-1,0 };
 		p3 = { 0,1,0 };
+
+		glm::vec3 b = p1 - p2;
+		glm::vec3 c = p1 - p3;
+		normal = glm::cross(b, c);
+
+		// this is our plane equation
+		p = { normal,p1 };
+		
 	}
 	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_) {
 		p1 = p1_;
 		p2 = p2_;
 		p3 = p3_;
-	}
-	double getDist(glm::vec3 orgin, glm::vec3 dir) {
+
 		glm::vec3 b = p1 - p2;
 		glm::vec3 c = p1 - p3;
-		glm::vec3 normal = glm::cross(b, c);
+		normal = glm::cross(b, c);
 
 		// this is our plane equation
-		plane p = { normal,p1 };
+		p = { normal,p1 };
+	}
+	double getDist(glm::vec3 orgin, glm::vec3 dir) {
+
 
 		double t = glm::dot((p1 - orgin), normal) / glm::dot(dir, normal);
 		//if (dir.x+orgin.x == 0 && dir.y+orgin.y == 0) {
@@ -100,30 +115,8 @@ public:
 			return -1;
 		}
 
-
-		//std::cout << t << "\n";
-		//return t;
-
-		abcd eq = calc();
-		//std::cout << eq.a << " " << eq.b << " " << eq.c << " " << eq.d << "\n";
-		t = getT(&eq, &orgin, &dir);
-		//std::cout << t << "\n";
-		I = getI(t, &orgin, &dir);
-		////std::cout << I << " " << t << "\n";
-		inside = IinsidePlane(&I);
-		//std::cout << t << "\n";
-		//return (t);
-		if (inside) {
-			return t;
-		}
-		else {
-			return -1;
-		}
-		return 1.0;
 	}
-	double area(glm::vec3 point1, glm::vec3 point2, glm::vec3 point3) {
-		//return .5*(points.x)
-	}
+
 
 	typedef struct {
 		double a, b, c, d;
@@ -279,6 +272,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 glm::vec3 camera = { 0,0,0 };
+double t0 = 0;
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -302,6 +296,13 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
 		camera.y += .1;
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+		t0 -= .1;
+	}
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+		t0 += .1;
 	}
 
 
@@ -494,6 +495,17 @@ int main() {
 
 		//std::cout << camera << "\n";
 
+		double theta = (90 - t0) * 3.1415 / 180.0;
+
+		//glm::vec3 pixel = { j/scale+camera.x,i/scale+camera.y,camera.z+1.0 };
+
+		// this is the zero point. Found when the cos(t) and sin(t) are a point on the slope
+		double x0 = cos(theta);
+
+		
+
+		std::cout << t0 << " " << theta << "\n";
+
 		int index = 0;
 		for (int i = length / 2; i > -length / 2; i--) {
 			for (int j = -width / 2; j < width / 2; j++) {
@@ -505,7 +517,25 @@ int main() {
 				//Point pixel_start = { j*sin(10) + camera.x,-i*cos(10) + camera.y,camera.z + 14};
 				//sin(theta * 3.1415 / 180.0)
 				//Point pixel = { j ,-i, 10};
-				glm::vec3 pixel = { j/scale+camera.x,i/scale+camera.y,camera.z+1.0 };
+
+				/*
+				* 
+				* formula: z = -(cos t)/(sin t) (x-cos t) + sin t
+				* 
+				* where t is the theta, x is the x value of the pixel and z is the correct z value of the pixel
+				* 
+				*/
+				
+				
+				//std::cout << theta << " " << t0 << " ";
+				//std::cout << "  slope: " << -sin(theta) / cos(theta) << " ";
+				//std::cout << "  slope2: " << -sin(90-t0) / cos(90-t0) << " " << sin(theta) << " " << cos(theta) << "\n";
+				double x = x0 - j;
+				double z = -cos(theta) / sin(theta) * (x - cos(theta)) + sin(theta);
+				
+
+				glm::vec3 pixel = { x,i,z};
+
 				//glm::vec3 pixel = {(j-camera.x)*cos(theta)-(i-camera.z)*sin(theta)+camera.x,0,(j-camera.x)*sin(theta)+(i-camera.x)*cos(theta)+camera.z};
 				//theta += .001;
 				if (theta > 360) {
