@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 //#include <GLFW/glfw3.h>
 #include <GLFW/glfw3.h>
+#include <glm/gtx/rotate_vector.hpp>
 
 
 
@@ -77,6 +78,7 @@ public:
 		double t = glm::dot((p1 - orgin), normal) / glm::dot(dir, normal);
 		//if (dir.x+orgin.x == 0 && dir.y+orgin.y == 0) {
 		//	std::cout << "data\n";
+		//	std::cout << orgin << "\n";
 		//	std::cout << dir << "\n";
 		//	std::cout << normal << "\n";
 		//	std::cout << glm::dot(dir, normal) << "\n";
@@ -87,12 +89,12 @@ public:
 
 		// get location of where the ray hits the plane
 		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-		if (dir.x + orgin.x == 0 && dir.y + orgin.y == 0) {
-			std::cout << I << "\n";
-			std::cout << t << "\n";
-			std::cout << orgin << "\n";
-			std::cout << dir << "\n";
-		}
+		//if (dir.x + orgin.x == 0 && dir.y + orgin.y == 0) {
+		//	std::cout << I << "\n";
+		//	std::cout << t << "\n";
+		//	std::cout << orgin << "\n";
+		//	std::cout << dir << "\n";
+		//}
 		// triangle intersection formula
 		glm::vec3 edge0 = p2 - p1;
 		glm::vec3 edge1 = p3 - p2;
@@ -273,29 +275,30 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 glm::vec3 camera = { 0,0,0 };
 double t0 = 0;
+double dx = .1;
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		camera.x -= .1;
+		camera.x -= dx;
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		camera.x += .1;
+		camera.x += dx;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		camera.z += .1;
+		camera.z += dx;
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		camera.z -= .1;
+		camera.z -= dx;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		camera.y -= .1;
+		camera.y -= dx;
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-		camera.y += .1;
+		camera.y += dx;
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
@@ -346,7 +349,7 @@ int main() {
 		triangles.push_back(f.x);
 		triangles.push_back(f.y);
 	}
-	triangles.push_back({ {-1,-1,4},{-1,1,4},{1,-1,4} });
+	triangles.push_back({ {-5,-5,500},{-5,5,500},{5,-5,500} });
 
 	//triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
 
@@ -489,6 +492,18 @@ int main() {
 
 	float theta = 0.0;
 
+	// testing here
+	glm::mat4 trans = glm::mat4(1.0f);
+	trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::vec4 pixel2 = trans * glm::vec4(-50, 0, 1, 1.0);
+
+
+	glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
+	std::cout << pixel << "\n";
+
+
+	//end testing
+
 	while (!glfwWindowShouldClose(window)) {
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -502,9 +517,11 @@ int main() {
 		// this is the zero point. Found when the cos(t) and sin(t) are a point on the slope
 		double x0 = cos(theta);
 
+		//std::cout << camera << "\n";
+
 		
 
-		std::cout << t0 << " " << theta << "\n";
+		//std::cout << t0 << " " << theta << "\n";
 
 		int index = 0;
 		for (int i = length / 2; i > -length / 2; i--) {
@@ -530,11 +547,38 @@ int main() {
 				//std::cout << theta << " " << t0 << " ";
 				//std::cout << "  slope: " << -sin(theta) / cos(theta) << " ";
 				//std::cout << "  slope2: " << -sin(90-t0) / cos(90-t0) << " " << sin(theta) << " " << cos(theta) << "\n";
-				double x = x0 - j;
-				double z = -cos(theta) / sin(theta) * (x - cos(theta)) + sin(theta);
+				//double x = x0 - j;
+				//double z = -cos(theta) / sin(theta) * (x - cos(theta)) + sin(theta);
 				
 
-				glm::vec3 pixel = { x,i,z};
+				glm::mat4 trans = glm::mat4(1.0f);
+				trans = glm::rotate(trans, glm::radians((float)t0), glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::vec4 pixel2 = trans * glm::vec4(j, i, 400, 1.0);
+
+
+				glm::vec3 pixel = {pixel2.x,pixel2.y,pixel2.z};
+
+				if (j == 0 && i == 0) {
+					std::cout << pixel << "\n";
+					std::cout << t0 << "\n";
+				}
+
+				// OKAY SOMETHING WORKS. 
+				// the issue is that when rotating 90 degrees, the x and z get flipped. But the x values is in 400ish range while z is 1.
+				// so the triangle does not move much on screen. So we need to scale things correctly before rotating the camera
+
+				/*
+				* 0,0,1.1 triangle
+				* 
+				* 0,0,1 pixel
+				* 
+				* 0,0,0 camera
+				*/
+
+				//glm::vec3 pixel = { i,j,camera.z+.99};
+				//std::cout << pixel2 << " " << pixel << "\n";
+				
+				//glm::vec3 pixel = glm::rotate(glm::radians(30), glm::vec3(j, i, z));
 
 				//glm::vec3 pixel = {(j-camera.x)*cos(theta)-(i-camera.z)*sin(theta)+camera.x,0,(j-camera.x)*sin(theta)+(i-camera.x)*cos(theta)+camera.z};
 				//theta += .001;
@@ -549,7 +593,7 @@ int main() {
 					//if (i == 0 && j == 0) {
 					//	std::cout << t << "\n";
 					//}
-					if (t > 0.1 && t < mint) {
+					if (t > 0.01 && t < mint) {
 						out = tr;
 						mint = t;
 						found = true;
