@@ -225,7 +225,42 @@ typedef struct {
 
 
 
+class Camera {
+public:
+	glm::vec3 position;
+	// in degrees
+	glm::vec3 rotations;
 
+	// up is y
+	glm::vec3 worldUp = { 0,1,0 };
+	float base_speed = .1;
+	float speed = base_speed;
+
+	Camera() {
+		position = { 0.0,0.0,0.0 };
+		rotations = { 0.0,0.0,0.0 };
+	}
+	Camera(glm::vec3 pos, glm::vec3 rot) {
+		position = pos;
+		rotations = rot;
+	}
+	void translate(bool left, bool right) {
+		glm::vec3 direction = {
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		};
+		// right of the camera is perpendicular vector of the direction of the camera
+		// and the world up
+		glm::vec3 right = glm::normalize(glm::cross(worldUp,direction));
+		// almost finished with implementing camera motion
+		glm::vec3 up = glm::normalize(glm::cross(direction, right));
+		
+
+	}
+private:
+
+};
 
 
 
@@ -273,7 +308,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
-glm::vec3 camera = { 0,0,0 };
+glm::vec3 camera = { 0,0,-10 };
 double t0 = 0;
 double dx = .1;
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -302,10 +337,10 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-		t0 -= .1;
+		t0 -= 1;
 	}
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-		t0 += .1;
+		t0 += 1;
 	}
 
 
@@ -349,7 +384,7 @@ int main() {
 		triangles.push_back(f.x);
 		triangles.push_back(f.y);
 	}
-	triangles.push_back({ {-5,-5,500},{-5,5,500},{5,-5,500} });
+	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1} });
 
 	//triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
 
@@ -361,6 +396,13 @@ int main() {
 	const int width = 800;
 	const double scale = length / 10;
 	bool inside = false;
+
+
+	// camera information
+	double camera_viewport_width = 1.0;
+	double camera_viewport_height = 1.0;
+	double camera_viewport_depth = 1.0;
+
 	//short out_arr[length * width][3];
 
 	glfwInit();
@@ -492,14 +534,7 @@ int main() {
 
 	float theta = 0.0;
 
-	// testing here
-	glm::mat4 trans = glm::mat4(1.0f);
-	trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::vec4 pixel2 = trans * glm::vec4(-50, 0, 1, 1.0);
 
-
-	glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
-	std::cout << pixel << "\n";
 
 
 	//end testing
@@ -549,18 +584,20 @@ int main() {
 				//std::cout << "  slope2: " << -sin(90-t0) / cos(90-t0) << " " << sin(theta) << " " << cos(theta) << "\n";
 				//double x = x0 - j;
 				//double z = -cos(theta) / sin(theta) * (x - cos(theta)) + sin(theta);
-				
+				float u = j / (float)height_t/camera_viewport_width;
+				float v = i / (float)width_t/camera_viewport_height;
 
 				glm::mat4 trans = glm::mat4(1.0f);
 				trans = glm::rotate(trans, glm::radians((float)t0), glm::vec3(0.0f, 1.0f, 0.0f));
-				glm::vec4 pixel2 = trans * glm::vec4(j, i, 400, 1.0);
+				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera_viewport_depth, 1.0);
 
 
 				glm::vec3 pixel = {pixel2.x,pixel2.y,pixel2.z};
 
 				if (j == 0 && i == 0) {
-					std::cout << pixel << "\n";
-					std::cout << t0 << "\n";
+					std::cout << pixel << " ";
+					std::cout << t0 << " ";
+					std::cout << camera << "\n";
 				}
 
 				// OKAY SOMETHING WORKS. 
@@ -589,11 +626,11 @@ int main() {
 				for (int k = 0; k < triangles.size(); k++) {
 					Triangle tr = triangles[k];
 					//std::cout << tr.p1.x << " " << tr.p1.y << " " << tr.p1.z << "\n";
-					double t = tr.getDist(camera, pixel-camera);
-					//if (i == 0 && j == 0) {
-					//	std::cout << t << "\n";
-					//}
-					if (t > 0.01 && t < mint) {
+					double t = tr.getDist(camera, pixel);
+					if (i == 0 && j == 0) {
+						std::cout << t << "\n";
+					}
+					if (t > camera_viewport_depth && t < mint) {
 						out = tr;
 						mint = t;
 						found = true;
