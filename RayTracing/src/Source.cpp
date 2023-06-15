@@ -231,32 +231,82 @@ public:
 	// in degrees
 	glm::vec3 rotations;
 
+	glm::vec3 direction;
+
 	// up is y
 	glm::vec3 worldUp = { 0,1,0 };
 	float base_speed = .1;
 	float speed = base_speed;
+	float rotation_speed = 2;
 
 	Camera() {
 		position = { 0.0,0.0,0.0 };
 		rotations = { 0.0,0.0,0.0 };
+		direction = { 0,0,1 };
 	}
 	Camera(glm::vec3 pos, glm::vec3 rot) {
 		position = pos;
 		rotations = rot;
+		direction = { 0,0,1 };
 	}
-	void translate(bool left, bool right) {
-		glm::vec3 direction = {
-			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
-			glm::sin(glm::radians(rotations.y)),
-			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
-		};
+	void translate(bool l, bool r, bool u, bool d, bool f, bool b) {
+		
 		// right of the camera is perpendicular vector of the direction of the camera
 		// and the world up
 		glm::vec3 right = glm::normalize(glm::cross(worldUp,direction));
 		// almost finished with implementing camera motion
 		glm::vec3 up = glm::normalize(glm::cross(direction, right));
+
+		glm::vec3 forward = glm::normalize(glm::cross(right, up));
+
+		if (l) {
+			position -= right * speed;
+		}
+		if (r) {
+			position += right * speed;
+		}
+		if (u) {
+			position += up * speed;
+		}
+		if (d) {
+			position -= up * speed;
+		}
+		if (f) {
+			position += forward * speed;
+		}
+		if (b) {
+			position -= forward * speed;
+		}
 		
 
+	}
+
+	void rotate(bool l, bool r, bool u, bool d) {
+		if (l) {
+			rotations -= glm::vec3(rotation_speed, 0, 0);
+		}
+		if (r) {
+			rotations += glm::vec3(rotation_speed, 0, 0);
+		}
+		if (u) {
+			rotations += glm::vec3(0, rotation_speed, 0);
+		}
+		if (d) {
+			rotations -= glm::vec3(0, rotation_speed, 0);
+		}
+		/*direction = {
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		};*/
+
+		direction = {
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.y)),
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		};
+
+		
 	}
 private:
 
@@ -308,40 +358,57 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
-glm::vec3 camera = { 0,0,-10 };
-double t0 = 0;
-double dx = .1;
+//glm::vec3 camera = { 0,0,-10 };
+Camera camera(glm::vec3(0,0,-10), glm::vec3(0,0,0));
+
+//move left, right,...
+bool left = false, right = false, up = false, down = false, forward = false, backward = false;
+//look left, right,...
+bool lleft = false, lright = false, lup = false, ldown = false;
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		camera.x -= dx;
-	}
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		camera.x += dx;
-	}
+	left = glfwGetKey(window, GLFW_KEY_A);
+	right = glfwGetKey(window, GLFW_KEY_D);
+	up = glfwGetKey(window, GLFW_KEY_SPACE);
+	down = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT);
+	forward = glfwGetKey(window, GLFW_KEY_W);
+	backward = glfwGetKey(window, GLFW_KEY_S);
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		camera.z += dx;
-	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		camera.z -= dx;
-	}
+	lleft = glfwGetKey(window, GLFW_KEY_LEFT);
+	lright = glfwGetKey(window, GLFW_KEY_RIGHT);
+	lup = glfwGetKey(window, GLFW_KEY_UP);
+	ldown = glfwGetKey(window, GLFW_KEY_DOWN);
 
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-		camera.y -= dx;
-	}
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-		camera.y += dx;
-	}
+	//if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+	//	std::cout << "thing\n";
+	//	camera.x -= dx;
+	//}
+	//if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+	//	camera.x += dx;
+	//}
 
-	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-		t0 -= 1;
-	}
-	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-		t0 += 1;
-	}
+	//if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+	//	camera.z += dx;
+	//}
+	//if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+	//	camera.z -= dx;
+	//}
+
+	//if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+	//	camera.y -= dx;
+	//}
+	//if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+	//	camera.y += dx;
+	//}
+
+	//if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+	//	t0 -= 1;
+	//}
+	//if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+	//	t0 += 1;
+	//}
 
 
 }
@@ -545,7 +612,7 @@ int main() {
 
 		//std::cout << camera << "\n";
 
-		double theta = (90 - t0) * 3.1415 / 180.0;
+		//double theta = (90 - t0) * 3.1415 / 180.0;
 
 		//glm::vec3 pixel = { j/scale+camera.x,i/scale+camera.y,camera.z+1.0 };
 
@@ -553,6 +620,8 @@ int main() {
 		double x0 = cos(theta);
 
 		//std::cout << camera << "\n";
+
+		std::cout << camera.position << " " << camera.rotations << " " << camera.direction << "\n";
 
 		
 
@@ -588,17 +657,18 @@ int main() {
 				float v = i / (float)width_t/camera_viewport_height;
 
 				glm::mat4 trans = glm::mat4(1.0f);
-				trans = glm::rotate(trans, glm::radians((float)t0), glm::vec3(0.0f, 1.0f, 0.0f));
+				trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
+				trans = glm::rotate(trans, glm::radians((float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
 				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera_viewport_depth, 1.0);
 
 
 				glm::vec3 pixel = {pixel2.x,pixel2.y,pixel2.z};
 
-				if (j == 0 && i == 0) {
-					std::cout << pixel << " ";
-					std::cout << t0 << " ";
-					std::cout << camera << "\n";
-				}
+				//if (j == 0 && i == 0) {
+				//	std::cout << pixel << " ";
+				//	std::cout << t0 << " ";
+				//	std::cout << camera << "\n";
+				//}
 
 				// OKAY SOMETHING WORKS. 
 				// the issue is that when rotating 90 degrees, the x and z get flipped. But the x values is in 400ish range while z is 1.
@@ -626,9 +696,9 @@ int main() {
 				for (int k = 0; k < triangles.size(); k++) {
 					Triangle tr = triangles[k];
 					//std::cout << tr.p1.x << " " << tr.p1.y << " " << tr.p1.z << "\n";
-					double t = tr.getDist(camera, pixel);
+					double t = tr.getDist(camera.position, pixel);
 					if (i == 0 && j == 0) {
-						std::cout << t << "\n";
+						//std::cout << t << "\n";
 					}
 					if (t > camera_viewport_depth && t < mint) {
 						out = tr;
@@ -689,6 +759,9 @@ int main() {
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+		camera.rotate(lleft, lright, lup, ldown);
+		camera.translate(left, right, up, down, forward, backward);
 		//std::exit(1);
 
 		//glfwSetWindowShouldClose(window, true);
