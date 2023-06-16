@@ -8,7 +8,6 @@
 #include <glad/glad.h>
 #include <glm/vec3.hpp>
 #include <glm/glm.hpp>
-//#include <GLFW/glfw3.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtx/rotate_vector.hpp>
 
@@ -108,7 +107,6 @@ public:
 			glm::dot(normal, glm::cross(edge1, C1)) > 0.0 &&
 			glm::dot(normal, glm::cross(edge2, C2)) > 0.0;
 
-		//bool inside = IinsidePlane(&I);
 
 		if (inside) {
 			return t;
@@ -231,51 +229,77 @@ public:
 	// in degrees
 	glm::vec3 rotations;
 
-	glm::vec3 direction;
+	glm::vec3 target = glm::vec3(0, 0, 0);
+
+	glm::vec3 front = glm::vec3(0, 0, -1);
 
 	// up is y
 	glm::vec3 worldUp = { 0,1,0 };
-	float base_speed = .1;
+	float base_speed = .2;
 	float speed = base_speed;
-	float rotation_speed = 2;
+	float rotation_speed = 4;
+
+	glm::vec3 direction;
+	glm::vec3 right;
+	glm::vec3 up;
+
 
 	Camera() {
 		position = { 0.0,0.0,0.0 };
 		rotations = { 0.0,0.0,0.0 };
-		direction = { 0,0,1 };
+		direction = glm::normalize(position);
+		right = glm::normalize(glm::cross(worldUp, direction));
+		//up = glm::cross(direction, right);
+		up = glm::vec3(0, 1, 0);
 	}
 	Camera(glm::vec3 pos, glm::vec3 rot) {
 		position = pos;
-		rotations = rot;
-		direction = { 0,0,1 };
+		rotations = {90,0,0};
+		direction = glm::normalize(position-target);
+		right = glm::normalize(glm::cross(worldUp, direction));
+		//up = glm::cross(direction, right);
+		up = glm::vec3(0, 1, 0);
+
+		std::cout << position << "  " << rotations << "  " << direction << "  ";
+		std::cout << right << "  " << up << "\n";
+
+		
 	}
 	void translate(bool l, bool r, bool u, bool d, bool f, bool b) {
 		
+		
 		// right of the camera is perpendicular vector of the direction of the camera
 		// and the world up
-		glm::vec3 right = glm::normalize(glm::cross(worldUp,direction));
+		//right = glm::normalize(glm::cross(worldUp,direction));
+		//right = glm::normalize(glm::cross(direction, up));
 		// almost finished with implementing camera motion
-		glm::vec3 up = glm::normalize(glm::cross(direction, right));
+		//up = glm::normalize(glm::cross(direction, right));
 
-		glm::vec3 forward = glm::normalize(glm::cross(right, up));
+		glm::vec3 roight = glm::normalize(glm::cross(front, up));
+		glm::vec3 up2 = glm::normalize(glm::cross(glm::cross(front, up), front));
+		//glm::vec3 up2 = glm::normalize(up);
+
+
 
 		if (l) {
-			position -= right * speed;
+			//position -= roight * speed;
+			position -= glm::normalize(glm::cross(front, up));
 		}
 		if (r) {
-			position += right * speed;
+			//position += roight * speed;
+			position += glm::normalize(glm::cross(front, up));
 		}
 		if (u) {
-			position += up * speed;
+			position += up2 * speed;
 		}
 		if (d) {
-			position -= up * speed;
+			position -= up2 * speed;
 		}
 		if (f) {
-			position += forward * speed;
+			position += front * speed;
 		}
 		if (b) {
-			position -= forward * speed;
+			position -= front * speed;
 		}
 		
 
@@ -301,10 +325,12 @@ public:
 		};*/
 
 		direction = {
-			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
 			glm::sin(glm::radians(rotations.y)),
-			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
 		};
+		front = glm::normalize(direction);
+		//direction = glm::normalize(direction);
 
 		
 	}
@@ -419,7 +445,7 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 int main() {
 
-
+	std::cout.precision(2);
 
 	/*
 	*  Need to fix camera orientation, y axis is upside down
@@ -621,7 +647,9 @@ int main() {
 
 		//std::cout << camera << "\n";
 
-		std::cout << camera.position << " " << camera.rotations << " " << camera.direction << "\n";
+		//std::cout << camera.position << "  " << camera.rotations << "  " << camera.direction << "  ";
+		//std::cout << camera.right << "  " << camera.up << "\n";
+		//std::cout << camera.front << "\n";
 
 		
 
