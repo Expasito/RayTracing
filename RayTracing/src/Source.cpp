@@ -235,7 +235,7 @@ public:
 
 	// up is y
 	glm::vec3 worldUp = { 0,1,0 };
-	float base_speed = .1;
+	float base_speed = .2;
 	float speed = base_speed;
 	float rotation_speed = 2;
 
@@ -258,6 +258,7 @@ public:
 		glm::vec3 up = glm::normalize(glm::cross(direction, right));
 
 		glm::vec3 forward = glm::normalize(glm::cross(right, up));
+		forward.y *= -1;
 
 		if (l) {
 			position -= right * speed;
@@ -266,10 +267,10 @@ public:
 			position += right * speed;
 		}
 		if (u) {
-			position += up * speed;
+			position -= up * speed;
 		}
 		if (d) {
-			position -= up * speed;
+			position += up * speed;
 		}
 		if (f) {
 			position += forward * speed;
@@ -305,6 +306,7 @@ public:
 			glm::sin(glm::radians(rotations.y)),
 			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
 		};
+		direction = glm::normalize(direction);
 
 		
 	}
@@ -359,7 +361,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 //glm::vec3 camera = { 0,0,-10 };
-Camera camera(glm::vec3(0,0,-10), glm::vec3(0,0,0));
+Camera camera(glm::vec3(0,3,-10), glm::vec3(0,0,0));
 
 //move left, right,...
 bool left = false, right = false, up = false, down = false, forward = false, backward = false;
