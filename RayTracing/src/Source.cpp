@@ -256,9 +256,11 @@ public:
 		glm::vec3 right = glm::normalize(glm::cross(worldUp,direction));
 		// almost finished with implementing camera motion
 		glm::vec3 up = glm::normalize(glm::cross(direction, right));
+		up.z *= -1;
+		up.x *= -1;
 
 		glm::vec3 forward = glm::normalize(glm::cross(right, up));
-		forward.y *= -1;
+		//forward.y *= -1;
 
 		if (l) {
 			position -= right * speed;
@@ -267,10 +269,10 @@ public:
 			position += right * speed;
 		}
 		if (u) {
-			position -= up * speed;
+			position += up * speed;
 		}
 		if (d) {
-			position += up * speed;
+			position -= up * speed;
 		}
 		if (f) {
 			position += forward * speed;
@@ -290,10 +292,17 @@ public:
 			rotations += glm::vec3(rotation_speed, 0, 0);
 		}
 		if (u) {
-			rotations += glm::vec3(0, rotation_speed, 0);
+			rotations -= glm::vec3(0, rotation_speed, 0);
 		}
 		if (d) {
-			rotations -= glm::vec3(0, rotation_speed, 0);
+			rotations += glm::vec3(0, rotation_speed, 0);
+		}
+		// prevent the vectors from flipping at 90 and -90 degrees
+		if (rotations.y > 89.99) {
+			rotations.y = 89.99;
+		}
+		if (rotations.y < -89.99) {
+			rotations.y = -89.99;
 		}
 		/*direction = {
 			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
@@ -383,38 +392,23 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	lup = glfwGetKey(window, GLFW_KEY_UP);
 	ldown = glfwGetKey(window, GLFW_KEY_DOWN);
 
-	//if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-	//	std::cout << "thing\n";
-	//	camera.x -= dx;
-	//}
-	//if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-	//	camera.x += dx;
-	//}
 
-	//if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-	//	camera.z += dx;
-	//}
-	//if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-	//	camera.z -= dx;
-	//}
-
-	//if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-	//	camera.y -= dx;
-	//}
-	//if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-	//	camera.y += dx;
-	//}
-
-	//if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-	//	t0 -= 1;
-	//}
-	//if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-	//	t0 += 1;
-	//}
 
 
 }
 
+// taylor series for cos to speed up the code
+float cos2(float input) {
+	return 1.0 - pow(input, 2) / 2.0 + pow(input, 4) / 24.0 - pow(input,6)/720.0;
+}
+
+// taylor series for sin to speed up the code
+float sin2(float input) {
+	return input - pow(input, 3) / 6.0 +
+		pow(input, 5) /120.0 - pow(input, 7) / 5040.0;
+}
+
+// we will have to rewrite the rotate function to use these, luckly, glm::rotate is public code
 
 
 
@@ -454,6 +448,18 @@ int main() {
 		triangles.push_back(f.y);
 	}
 	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1} });
+	int len= 10;
+	triangles.push_back({
+		{-len,-len,-len},
+		{-len,-len,len},
+		{len,-len,len}
+		});
+
+	triangles.push_back({
+		{len,-len,len},
+		{len,-len,-len},
+		{-len,-len,-len}
+		});
 
 	//triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
 
@@ -461,16 +467,16 @@ int main() {
 	
 
 	// picture size
-	const int length = 800;
-	const int width = 800;
+	const int length = 600;
+	const int width = 600;
 	const double scale = length / 10;
 	bool inside = false;
 
 
 	// camera information
-	double camera_viewport_width = 1.0;
-	double camera_viewport_height = 1.0;
-	double camera_viewport_depth = 1.0;
+	double camera_viewport_width = 2;
+	double camera_viewport_height = 2;
+	double camera_viewport_depth = 1;
 
 	//short out_arr[length * width][3];
 
@@ -478,7 +484,7 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GLFWwindow* window = glfwCreateWindow(length, width, "Window", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(800, 800, "Window", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "failed to create\n";
 		return -1;
@@ -490,7 +496,7 @@ int main() {
 		return -1;
 	}
 
-	glViewport(0, 0, length, width);
+	glViewport(0, 0, 800, 800);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetKeyCallback(window, keycallback);
@@ -609,6 +615,7 @@ int main() {
 	//end testing
 
 	while (!glfwWindowShouldClose(window)) {
+		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -623,14 +630,16 @@ int main() {
 
 		//std::cout << camera << "\n";
 
-		std::cout << camera.position << " " << camera.rotations << " " << camera.direction << "\n";
+		//std::cout << camera.position << " " << camera.rotations << " " << camera.direction << "\n";
 
 		
 
 		//std::cout << t0 << " " << theta << "\n";
 
 		int index = 0;
-		for (int i = length / 2; i > -length / 2; i--) {
+		//for (int i = length / 2; i > -length / 2; i--) {
+		for (int i = -length / 2; i < length / 2; i++) {
+
 			for (int j = -width / 2; j < width / 2; j++) {
 
 				Triangle out;
@@ -694,14 +703,15 @@ int main() {
 				if (theta > 360) {
 					theta = 0.0;
 				}
+				double t;
 
 				for (int k = 0; k < triangles.size(); k++) {
 					Triangle tr = triangles[k];
 					//std::cout << tr.p1.x << " " << tr.p1.y << " " << tr.p1.z << "\n";
-					double t = tr.getDist(camera.position, pixel);
-					if (i == 0 && j == 0) {
-						//std::cout << t << "\n";
-					}
+					t = tr.getDist(camera.position, pixel);
+					//if (i == 0 && j == 0) {
+					//	std::cout << t << "\n";
+					//}
 					if (t > camera_viewport_depth && t < mint) {
 						out = tr;
 						mint = t;
@@ -709,12 +719,16 @@ int main() {
 					}
 
 				}
+				//if (i == 0 && j == 0) {
+				//	std::cout << mint << "\n";
+				//}
+
 
 				// update the colors here
 				if (found) {
-					data[index++] = 255;
-					data[index++] = 100;
-					data[index++] = 100;
+					data[index++] = (int)(255-mint*10);
+					data[index++] = (int)mint*10;
+					data[index++] = (int)mint*10;
 					//std::cout << 1 << "";
 
 				}
@@ -767,7 +781,9 @@ int main() {
 		//std::exit(1);
 
 		//glfwSetWindowShouldClose(window, true);
-		
+		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+		float milis = (end - begin).count() / 1000000.0;
+		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << "\n";
 	}
 
 	glfwTerminate();
