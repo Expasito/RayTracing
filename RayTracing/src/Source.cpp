@@ -135,7 +135,6 @@ public:
 	glm::vec3 position;
 	// in degrees
 	glm::vec3 rotations;
-
 	// for movement
 	glm::vec3 direction;
 	glm::vec3 right;
@@ -147,6 +146,7 @@ public:
 	float moveSpeed=moveBaseSpeed;
 	float rotBaseSpeed = 40.0;
 	float rotSpeed=rotBaseSpeed;
+
 
 
 	Camera() {
@@ -168,9 +168,11 @@ public:
 			glm::sin(glm::radians(rotations.y)),
 			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
 		));
+
 	}
 
 	void translate(bool l, bool r, bool u, bool d, bool f, bool b) {
+		
 		
 		// right of the camera is perpendicular vector of the direction of the camera
 		// and the world up
@@ -178,6 +180,7 @@ public:
 	
 		// up vector is direction and right crossed
 		up = glm::normalize(glm::cross(direction, right));
+
 
 
 
@@ -199,6 +202,7 @@ public:
 		}
 		if (b) {
 			position -= direction * moveSpeed;
+
 		}
 		
 
@@ -232,7 +236,6 @@ public:
 		));
 
 
-		
 	}
 private:
 
@@ -299,12 +302,11 @@ float sin2(float input) {
 // we will have to rewrite the rotate function to use these, luckly, glm::rotate is public code
 
 
-
-
 int main() {
 
 	// make camera a public variable
 	Camera camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0));
+
 
 	// vector of all triangles to draw
 	std::vector<Triangle> triangles;
@@ -495,8 +497,8 @@ int main() {
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-
 		int index = 0;
+
 
 		for (int i = -height / 2; i < height / 2; i++) {
 
