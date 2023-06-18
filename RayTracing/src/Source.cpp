@@ -152,23 +152,23 @@ public:
 	Camera() {
 		position = { 0.0,0.0,0.0 };
 		rotations = { 0.0,0.0,0.0 };
-		direction = glm::normalize(position);
-		right = glm::normalize(glm::cross(worldUp, direction));
-		//up = glm::cross(direction, right);
-		up = glm::vec3(0, 1, 0);
+		// do special math for direction based on rotations
+		direction = glm::normalize(glm::vec3(
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.y)),
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		));
 	}
 	Camera(glm::vec3 pos, glm::vec3 rot) {
 		position = pos;
-		rotations = {90,0,0};
-		direction = glm::normalize(position-target);
-		right = glm::normalize(glm::cross(worldUp, direction));
-		//up = glm::cross(direction, right);
-		up = glm::vec3(0, 1, 0);
+		rotations = rot;
+		// also do special math based on rotations
+		direction = glm::normalize(glm::vec3(
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.y)),
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		));
 
-		std::cout << position << "  " << rotations << "  " << direction << "  ";
-		std::cout << right << "  " << up << "\n";
-
-		
 	}
 
 	void translate(bool l, bool r, bool u, bool d, bool f, bool b) {
@@ -229,14 +229,12 @@ public:
 			rotations.y = -89.99;
 		}
 		// recalculate the direction
-		direction = {
-			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+		direction = glm::normalize(glm::vec3(
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
 			glm::sin(glm::radians(rotations.y)),
-			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
-		};
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		));
 
-		// normalize after getting the direction
-		direction = glm::normalize(direction);
 
 	}
 private:
