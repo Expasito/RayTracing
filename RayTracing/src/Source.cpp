@@ -8,7 +8,6 @@
 #include <glad/glad.h>
 #include <glm/vec3.hpp>
 #include <glm/glm.hpp>
-//#include <GLFW/glfw3.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtx/rotate_vector.hpp>
 
@@ -21,21 +20,26 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 	return os;
 }
 
+
+/*
+* This is the base object class for triangles and spheres
+*/
 class Object {
 public:
 	virtual double getDist(glm::vec3 point, glm::vec3 dir) = 0;
 private:
 };
 
+
+/*
+* This is just a plane for the triangle based on a point and normal to it
+*/
 struct plane {
 	glm::vec3 n;
 	glm::vec3 p;
 };
 
-struct ray {
-	glm::vec3 o;
-	glm::vec3 d;
-};
+
 
 class Triangle : public Object {
 public:
@@ -74,27 +78,12 @@ public:
 	}
 	double getDist(glm::vec3 orgin, glm::vec3 dir) {
 
-
+		// get distance along line
 		double t = glm::dot((p1 - orgin), normal) / glm::dot(dir, normal);
-		//if (dir.x+orgin.x == 0 && dir.y+orgin.y == 0) {
-		//	std::cout << "data\n";
-		//	std::cout << orgin << "\n";
-		//	std::cout << dir << "\n";
-		//	std::cout << normal << "\n";
-		//	std::cout << glm::dot(dir, normal) << "\n";
-		//	std::cout << p1 - orgin << "\n";
-		//	std::cout << dot(p1 - orgin, normal) << "\n";
-		//	std::cout << t << "\n";
-		//}
 
 		// get location of where the ray hits the plane
 		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-		//if (dir.x + orgin.x == 0 && dir.y + orgin.y == 0) {
-		//	std::cout << I << "\n";
-		//	std::cout << t << "\n";
-		//	std::cout << orgin << "\n";
-		//	std::cout << dir << "\n";
-		//}
+		
 		// triangle intersection formula
 		glm::vec3 edge0 = p2 - p1;
 		glm::vec3 edge1 = p3 - p2;
@@ -103,12 +92,11 @@ public:
 		glm::vec3 C1 = I - p2;
 		glm::vec3 C2 = I - p3;
 
+		// check if the point is inside of the triangle
 		bool inside =
 			glm::dot(normal, glm::cross(edge0, C0)) > 0.0 &&
 			glm::dot(normal, glm::cross(edge1, C1)) > 0.0 &&
 			glm::dot(normal, glm::cross(edge2, C2)) > 0.0;
-
-		//bool inside = IinsidePlane(&I);
 
 		if (inside) {
 			return t;
@@ -119,69 +107,13 @@ public:
 
 	}
 
-
-	typedef struct {
-		double a, b, c, d;
-	} abcd;
-	glm::vec3 subtract(glm::vec3* one, glm::vec3* two) {
-		return { one->x - two->x,one->y - two->y,one->z - two->z };
-	}
-
-	glm::vec3 getI(double t, glm::vec3* camera, glm::vec3* pixel) {
-		return { (1 - t) * camera->x + t * pixel->x, (1 - t) * camera->y + t * pixel->y, (1 - t) * camera->z + t * pixel->z };
-	}
-
-	abcd calc() {
-		glm::vec3 diff1 = subtract(&this->p3, &this->p1);
-		glm::vec3 diff3 = subtract(&this->p2, &this->p1);
-
-
-		glm::vec3 normal = glm::cross(diff1, diff3);
-		abcd out = { -normal.x,-normal.y,-normal.z,
-		normal.x * this->p1.x + normal.y * this->p1.y + normal.z * this->p1.z
-		};
-		return out;
-	}
-	
-	double getT(abcd* coef, glm::vec3* camera, glm::vec3* pixel) {
-		//double top = -(coef->a * camera->x + coef->b * camera->y + coef->c * camera->z + coef->d);
-		//double bottom = (coef->a * (-camera->x + pixel->x) + coef->b * (-camera->y + pixel->y) + coef->c * (-camera->z + pixel->z));
-		////std::cout << top << " " << bottom << " " << pixel.x << " " << pixel.y << " " << pixel.z << "\n";
-		//if (bottom == 0) {
-		//	return 10000000;
-		//}
-		//else {
-		//	return top / bottom;
-		//}
-		glm::vec3 p2 = { pixel->x - camera->x,pixel->y - camera->y,pixel->z - camera->z };
-		double t = -coef->d / (coef->a * p2.x + coef->b * p2.y + coef->c);
-		return t;
-	}
-	double areaTri(glm::vec3* a, glm::vec3* b, glm::vec3* c) {
-		glm::vec3 diff1 = { a->x - b->x,a->y - b->y,a->z - b->z };
-		glm::vec3 diff2 = { a->x - c->x,a->y - c->y,a->z - c->z };
-		//Point normal = cross(&diff1, &diff2);
-		glm::vec3 normal = { diff1.y * diff2.z - diff1.z * diff2.y,
-			diff1.z * diff2.x - diff1.x * diff2.z,
-			diff1.x * diff2.y - diff1.y * diff2.x };
-		double mag = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-		return mag / 2.0;
-	}
-
-	bool IinsidePlane(glm::vec3* I) {
-	double area1 = areaTri(I, &this->p1, &this->p2);
-	double area2 = areaTri(I, &this->p2, &this->p3);
-	double area3 = areaTri(I, &this->p1, &this->p3);
-	double area = areaTri(&this->p1, &this->p2, &this->p3);
-	if (fabs(area1 + area2 + area3 - area) < 0.0001) {
-		return true;
-	}
-	return false;
-}
 private:
 
 };
 
+/*
+* Will implement later. Used for spheres (obviously)
+*/ 
 class Sphere : public Object {
 public:
 	Sphere() {
@@ -194,50 +126,28 @@ private:
 };
 
 
-typedef struct {
-	Triangle x;
-	Triangle y;
-} Face;
-
-
-
-
-
-
-
-
-
-
-
-
 /*
-* Calculates the area of a triangle
-*/
-
-
-/*
-* calc takes in a Triangle and returns the plane equation from the Triangle's points
-*/
-
-
-
-
-
-
-
+* Camera class for where to send out rays
+*/ 
 class Camera {
 public:
+
 	glm::vec3 position;
 	// in degrees
 	glm::vec3 rotations;
 
+	// for movement
 	glm::vec3 direction;
+	glm::vec3 right;
+	glm::vec3 up;
 
 	// up is y
 	glm::vec3 worldUp = { 0,1,0 };
-	float base_speed = .2;
-	float speed = base_speed;
-	float rotation_speed = 2;
+	float moveBaseSpeed = 10.0;
+	float moveSpeed=moveBaseSpeed;
+	float rotBaseSpeed = 40.0;
+	float rotSpeed=rotBaseSpeed;
+
 
 	Camera() {
 		position = { 0.0,0.0,0.0 };
@@ -249,36 +159,36 @@ public:
 		rotations = rot;
 		direction = { 0,0,1 };
 	}
+
 	void translate(bool l, bool r, bool u, bool d, bool f, bool b) {
 		
 		// right of the camera is perpendicular vector of the direction of the camera
 		// and the world up
-		glm::vec3 right = glm::normalize(glm::cross(worldUp,direction));
-		// almost finished with implementing camera motion
-		glm::vec3 up = glm::normalize(glm::cross(direction, right));
-		up.z *= -1;
-		up.x *= -1;
+		right = glm::normalize(glm::cross(worldUp,direction));
+	
+		// up vector is direction and right crossed
+		up = glm::normalize(glm::cross(direction, right));
 
-		glm::vec3 forward = glm::normalize(glm::cross(right, up));
-		//forward.y *= -1;
 
+
+		// apply all transformations
 		if (l) {
-			position -= right * speed;
+			position -= right * moveSpeed;
 		}
 		if (r) {
-			position += right * speed;
+			position += right * moveSpeed;
 		}
 		if (u) {
-			position += up * speed;
+			position += up * moveSpeed;
 		}
 		if (d) {
-			position -= up * speed;
+			position -= up * moveSpeed;
 		}
 		if (f) {
-			position += forward * speed;
+			position += direction * moveSpeed;
 		}
 		if (b) {
-			position -= forward * speed;
+			position -= direction * moveSpeed;
 		}
 		
 
@@ -286,16 +196,16 @@ public:
 
 	void rotate(bool l, bool r, bool u, bool d) {
 		if (l) {
-			rotations -= glm::vec3(rotation_speed, 0, 0);
+			rotations -= glm::vec3(rotSpeed, 0, 0);
 		}
 		if (r) {
-			rotations += glm::vec3(rotation_speed, 0, 0);
+			rotations += glm::vec3(rotSpeed, 0, 0);
 		}
 		if (u) {
-			rotations -= glm::vec3(0, rotation_speed, 0);
+			rotations += glm::vec3(0, rotSpeed, 0);
 		}
 		if (d) {
-			rotations += glm::vec3(0, rotation_speed, 0);
+			rotations -= glm::vec3(0, rotSpeed, 0);
 		}
 		// prevent the vectors from flipping at 90 and -90 degrees
 		if (rotations.y > 89.99) {
@@ -304,17 +214,13 @@ public:
 		if (rotations.y < -89.99) {
 			rotations.y = -89.99;
 		}
-		/*direction = {
-			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
-			glm::sin(glm::radians(rotations.y)),
-			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
-		};*/
-
+		// recalculate the direction
 		direction = {
 			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
 			glm::sin(glm::radians(rotations.y)),
 			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
 		};
+		// normalize after getting the direction
 		direction = glm::normalize(direction);
 
 		
@@ -323,31 +229,6 @@ private:
 
 };
 
-
-
-
-
-
-
-
-// fix later
-//Face createFace(Point start, double width, double height, double depth) {
-//	Point tl = {start.x-width,start.y+height,start.z+depth};
-//	Point tr = {start.x+width,start.y+height,start.z + depth };
-//	Point bl = { start.x-width,start.y - height,start.z + depth };
-//	Point br = {start.x+width,start.y - height,start.z + depth };
-//	Triangle one = {tl,bl,br};
-//	Triangle two = {tl,tr,br};
-//	return {one,two};
-//
-//}
-// there should only be 4 points because a sqaure has 4 points
-// order is top-left, top-right, bottom-left, bottom-right
-Face createFace(glm::vec3 points[]) {
-	Triangle one = {points[0],points[2],points[3]};
-	Triangle two = {points[0], points[1], points[3]};
-	return { one,two };
-}
 
 
 
@@ -369,8 +250,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 
-//glm::vec3 camera = { 0,0,-10 };
-Camera camera(glm::vec3(0,3,-10), glm::vec3(0,0,0));
 
 //move left, right,...
 bool left = false, right = false, up = false, down = false, forward = false, backward = false;
@@ -415,40 +294,16 @@ float sin2(float input) {
 
 int main() {
 
+	// make camera a public variable
+	Camera camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0));
 
-
-	/*
-	*  Need to fix camera orientation, y axis is upside down
-	* only need to see the image once, so fix the way we write to the buffer
-	* make it so the camera can move around without the image being distorted
-	* allow for other shapes
-	*/
-	std::vector<Face> faces;
+	// vector of all triangles to draw
 	std::vector<Triangle> triangles;
-	glm::vec3 arr[] = { {-1,1,1},{1,1,1},{-1,-1,1},{1,-1,1} };
-	Face a = createFace(arr);
-	glm::vec3 arr2[] = {
-		{-1,-1,1},
-		{1,1,1},
-		{-1,-1,1},
-		{1,-1,1}
-	};
-	Face b = createFace(arr2);
-	//std::cout << a.x.p1.x << "\n";
-	//Face a = createFace({ 1,1,0 }, 1, 1, 1);
-	//Face b = createFace({ 1,1,0 }, 1, 1, 1);
-	//Face b = createFace({ -1,-2,1 }, 2, .5, 1);
-	//Face c = createFace({-1,-3,1}, 3, 3, 4);
-	//faces.push_back(a);
-	//faces.push_back(b);
-	//faces.push_back(c);
 
-	for (Face const& f : faces) {
-		triangles.push_back(f.x);
-		triangles.push_back(f.y);
-	}
 	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1} });
-	int len= 10;
+
+	int len = 10;
+	// random floor
 	triangles.push_back({
 		{-len,-len,-len},
 		{-len,-len,len},
@@ -461,16 +316,21 @@ int main() {
 		{-len,-len,-len}
 		});
 
-	//triangles.push_back({ {-1,1,2},{1,1,2},{1,-1,2} });
+	// generate a lot of random triangles
+	for (int i = 0; i < 0; i++) {
+		triangles.push_back({ { (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50 },
+			{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50},
+			{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 } });
+	}
 
-	// camera
 	
 
-	// picture size
-	const int length = 600;
-	const int width = 600;
-	const double scale = length / 10;
-	bool inside = false;
+	// This is the size for the number of rays to cast out. So length*width is the total.
+	int width = 1200;
+	int height = 600;
+	// this is the size of the output(display) window
+	int win_width = 1600;
+	int win_height = 800;
 
 
 	// camera information
@@ -478,13 +338,13 @@ int main() {
 	double camera_viewport_height = 2;
 	double camera_viewport_depth = 1;
 
-	//short out_arr[length * width][3];
 
+	// opengl stuff here
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GLFWwindow* window = glfwCreateWindow(800, 800, "Window", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(win_width, win_height, "Window", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "failed to create\n";
 		return -1;
@@ -496,11 +356,12 @@ int main() {
 		return -1;
 	}
 
-	glViewport(0, 0, 800, 800);
+	glViewport(0, 0, win_width, win_height);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetKeyCallback(window, keycallback);
 
+	// just raw strings, very simple shaders so will leave as a long string
 	const char* vertexShaderSource = "#version 330 core\n"
 		"layout (location = 0) in vec3 pos;\n"
 		"layout (location = 1) in vec2 textCoord;\n"
@@ -518,7 +379,6 @@ int main() {
 		"void main()\n"
 		"{\n"
 		"   FragColor = texture(texture1,TexCord);\n"
-		//"   FragColor = vec4(TexCord,1,1);\n"
 		"}\n\0";
 
 
@@ -564,6 +424,7 @@ int main() {
 	1,1,0,1,1,
 	1,-1,0,1,0
 	};
+	// texture stuff
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -571,14 +432,14 @@ int main() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	int width_t = length;
-	int height_t = width;
-	int channels = 3;
 
-	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width_t * height_t * channels);
+	// this array will hold the color for each pixel we send a ray out for
+	int channels = 3;
+	// width and height are defined above
+	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width * height * channels);
 	int c = 0;
-	for (int i = 0; i < width_t; i++) {
-		for (int j = 0; j < height_t; j++) {
+	for (int i = 0; i < width; i++) {
+		for (int j = 0; j < height; j++) {
 
 			data[c++] = 0;
 			data[c++] = 0;
@@ -591,7 +452,7 @@ int main() {
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_t, height_t, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -607,111 +468,59 @@ int main() {
 
 	glBindVertexArray(VAO);
 
-	float theta = 0.0;
+	
+	// stuff for times
+	std::chrono::steady_clock::time_point begin;
+	std::chrono::steady_clock::time_point end;
+	float milis=0;
 
 
-
-
-	//end testing
-
+	// now for the run loop
 	while (!glfwWindowShouldClose(window)) {
-		std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+		// start clock
+		begin = std::chrono::steady_clock::now();
+		
+
+		// clear the screen
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		//std::cout << camera << "\n";
-
-		//double theta = (90 - t0) * 3.1415 / 180.0;
-
-		//glm::vec3 pixel = { j/scale+camera.x,i/scale+camera.y,camera.z+1.0 };
-
-		// this is the zero point. Found when the cos(t) and sin(t) are a point on the slope
-		double x0 = cos(theta);
-
-		//std::cout << camera << "\n";
-
-		//std::cout << camera.position << " " << camera.rotations << " " << camera.direction << "\n";
-
-		
-
-		//std::cout << t0 << " " << theta << "\n";
 
 		int index = 0;
-		//for (int i = length / 2; i > -length / 2; i--) {
-		for (int i = -length / 2; i < length / 2; i++) {
+
+		for (int i = -height / 2; i < height / 2; i++) {
 
 			for (int j = -width / 2; j < width / 2; j++) {
 
+				// reference to closest triangle
 				Triangle out;
 				double mint = 1000000000;
 				bool found = false;
-				// need to figure out this part
-				//Point pixel_start = { j*sin(10) + camera.x,-i*cos(10) + camera.y,camera.z + 14};
-				//sin(theta * 3.1415 / 180.0)
-				//Point pixel = { j ,-i, 10};
 
-				/*
-				* 
-				* formula: z = -(cos t)/(sin t) (x-cos t) + sin t
-				* 
-				* where t is the theta, x is the x value of the pixel and z is the correct z value of the pixel
-				* 
-				*/
-				
-				
-				//std::cout << theta << " " << t0 << " ";
-				//std::cout << "  slope: " << -sin(theta) / cos(theta) << " ";
-				//std::cout << "  slope2: " << -sin(90-t0) / cos(90-t0) << " " << sin(theta) << " " << cos(theta) << "\n";
-				//double x = x0 - j;
-				//double z = -cos(theta) / sin(theta) * (x - cos(theta)) + sin(theta);
-				float u = j / (float)height_t/camera_viewport_width;
-				float v = i / (float)width_t/camera_viewport_height;
+				// convert camera plane pixel to into a range
+				float u = j / (float)height/camera_viewport_width;
+				float v = i / (float)width/camera_viewport_height;
 
+				// rotate the camrea plane pixel around the camera's location
 				glm::mat4 trans = glm::mat4(1.0f);
 				trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
-				trans = glm::rotate(trans, glm::radians((float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
+				trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
 				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera_viewport_depth, 1.0);
 
-
+				// now get the first 3 elements of pixel2 for the new location of the pixel
 				glm::vec3 pixel = {pixel2.x,pixel2.y,pixel2.z};
 
-				//if (j == 0 && i == 0) {
-				//	std::cout << pixel << " ";
-				//	std::cout << t0 << " ";
-				//	std::cout << camera << "\n";
-				//}
-
-				// OKAY SOMETHING WORKS. 
-				// the issue is that when rotating 90 degrees, the x and z get flipped. But the x values is in 400ish range while z is 1.
-				// so the triangle does not move much on screen. So we need to scale things correctly before rotating the camera
-
-				/*
-				* 0,0,1.1 triangle
-				* 
-				* 0,0,1 pixel
-				* 
-				* 0,0,0 camera
-				*/
-
-				//glm::vec3 pixel = { i,j,camera.z+.99};
-				//std::cout << pixel2 << " " << pixel << "\n";
-				
-				//glm::vec3 pixel = glm::rotate(glm::radians(30), glm::vec3(j, i, z));
-
-				//glm::vec3 pixel = {(j-camera.x)*cos(theta)-(i-camera.z)*sin(theta)+camera.x,0,(j-camera.x)*sin(theta)+(i-camera.x)*cos(theta)+camera.z};
-				//theta += .001;
-				if (theta > 360) {
-					theta = 0.0;
-				}
+				// define t out here so we can use it outside of the for loop scope
 				double t;
 
 				for (int k = 0; k < triangles.size(); k++) {
 					Triangle tr = triangles[k];
-					//std::cout << tr.p1.x << " " << tr.p1.y << " " << tr.p1.z << "\n";
+
+					// get the distance for this triangle
 					t = tr.getDist(camera.position, pixel);
-					//if (i == 0 && j == 0) {
-					//	std::cout << t << "\n";
-					//}
+
+					// update the closes triangle here
 					if (t > camera_viewport_depth && t < mint) {
 						out = tr;
 						mint = t;
@@ -719,153 +528,58 @@ int main() {
 					}
 
 				}
-				//if (i == 0 && j == 0) {
-				//	std::cout << mint << "\n";
-				//}
 
 
 				// update the colors here
 				if (found) {
-					data[index++] = (int)(255-mint*10);
-					data[index++] = (int)mint*10;
-					data[index++] = (int)mint*10;
-					//std::cout << 1 << "";
+					data[index++] = i;
+					data[index++] = j;
+					data[index++] = (i+j)/2.0;
+
 
 				}
 				else {
-					//fprintf(file, "0 0 50\n");
+					// set background color
 					data[index++] = 0;
 					data[index++] = 0;
 					data[index++] = 0;
-					//std::cout << 0 << "";
+
 
 				}
 				
 
 			}
-			//std::cout << "\n";
+
 		}
 
-		//std::cout << "\n\n\n\n";
-		
 
 
+		// update image for opengl to draw
 		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_t, height_t, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
-		//c = 0;
-		//for (int i = 0; i < width_t; i++) {
-		//	for (int j = 0; j < height_t; j++) {
-		//		if ((int)data[c++] == 255) {
-		//			std::cout << 1 << "";
-		//		}
-		//		else {
-		//			std::cout << 0 << "";
-		//		}
-		//		//std::cout << (int)data[c++] << " ";
-		//		c++;
-		//		c++;
-		//	}
-		//	std::cout << "\n";
-		//}
-		
-
-
+		// draw image
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
+		// move camera
 		camera.rotate(lleft, lright, lup, ldown);
 		camera.translate(left, right, up, down, forward, backward);
-		//std::exit(1);
 
-		//glfwSetWindowShouldClose(window, true);
-		std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-		float milis = (end - begin).count() / 1000000.0;
+
+		// get delta time and frame data
+		end = std::chrono::steady_clock::now();
+		milis = (end - begin).count() / 1000000.0;
 		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << "\n";
+
+		// convert miliseconds to a delta time
+		camera.moveSpeed = camera.moveBaseSpeed * milis/1000.0;
+		camera.rotSpeed = camera.rotBaseSpeed * milis/1000.0;
 	}
 
 	glfwTerminate();
-	std::cout << "here1\n";
-
-	//FILE* file = fopen("src/Image.ppm", "w");
-	//if (file == NULL) {
-	//	printf("Failed to open");
-	//}
-	//fprintf(file, "P3\n%d %d\n255\n", width, length);
-
-
-	//
-	//std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
-
-	////Triangle out;
-	////double mint = 1000000000;
-	////bool found = false;
-	////Point pixel = { 0,0,camera.z + 1 };
-	////for (int k = 0; k < triangles.size(); k++) {
-	////	Triangle tr = triangles[k];
-	////	abcd eq = calc(&tr);
-	////	double t = getT(&eq, &camera, &pixel);
-	////	//std::cout << t << "\n";
-	////	Point I = getI(t, &camera, &pixel);
-	////	std::cout << I << " " << t << "\n";
-	////	bool inside = IinsidePlane(&I, &tr);
-	////	if (inside && t < mint && t>0) {
-	////		out = tr;
-	////		mint = t;
-	////		found = true;
-	////	}
-	////}
-
-	////std::exit(0);
-	//int index = 0;
-	//for (int i = length/2; i > -length/2; i--) {
-	//	for (int j = -width/2; j < width/2; j++) {
-
-	//		Triangle out;
-	//		double mint = 1000000000;
-	//		bool found = false;
-	//		Point pixel = { j / scale,i / scale ,camera.z + 1 };
-	//		for (int k = 0; k < triangles.size(); k++) {
-	//			Triangle tr = triangles[k];
-	//			abcd eq = calc(&tr);
-	//			double t = getT(&eq, &camera, &pixel);
-	//			//std::cout << t << "\n";
-	//			Point I = getI(t, &camera, &pixel);
-	//			//std::cout << I << " " << t << "\n";
-	//			bool inside = IinsidePlane(&I, &tr);
-	//			if (inside && t < mint && t>0) {
-	//				out = tr;
-	//				mint = t;
-	//				found = true;
-	//			}
-	//		}
-
-	//		if (found) {
-	//			out_arr[index][0] = 100;
-	//			out_arr[index][1] = 100;
-	//			out_arr[index][2] = 100;
-	//			//fprintf(file, "%d %d %d\n", 100, 0, 0);
-	//		}
-	//		else {
-	//			//fprintf(file, "0 0 50\n");
-	//			out_arr[index][0] = 255;
-	//			out_arr[index][1] = 255;
-	//			out_arr[index][2] = 255;
-	//		}
-	//		index++;
-	//		
-	//	}
-	//}
-	//std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
-	//std::cerr << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds> (end - begin).count() << "[ms]" << std::endl;
-	//for (int i = 0; i < index; i++) {
-	//	fprintf(file, "%d %d %d\n", out_arr[i][0], out_arr[i][1], out_arr[i][2]);
-	//}
-	//fclose(file);
 
 
 }
