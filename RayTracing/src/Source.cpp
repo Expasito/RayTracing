@@ -152,12 +152,22 @@ public:
 	Camera() {
 		position = { 0.0,0.0,0.0 };
 		rotations = { 0.0,0.0,0.0 };
-		direction = { 0,0,1 };
+		// do special math for direction based on rotations
+		direction = glm::normalize(glm::vec3(
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.y)),
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		));
 	}
 	Camera(glm::vec3 pos, glm::vec3 rot) {
 		position = pos;
 		rotations = rot;
-		direction = { 0,0,1 };
+		// also do special math based on rotations
+		direction = glm::normalize(glm::vec3(
+			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
+			glm::sin(glm::radians(rotations.y)),
+			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
+		));
 	}
 
 	void translate(bool l, bool r, bool u, bool d, bool f, bool b) {
@@ -215,13 +225,12 @@ public:
 			rotations.y = -89.99;
 		}
 		// recalculate the direction
-		direction = {
+		direction = glm::normalize(glm::vec3(
 			glm::sin(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y)),
 			glm::sin(glm::radians(rotations.y)),
 			glm::cos(glm::radians(rotations.x)) * glm::cos(glm::radians(rotations.y))
-		};
-		// normalize after getting the direction
-		direction = glm::normalize(direction);
+		));
+
 
 		
 	}
