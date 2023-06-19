@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/gtx/rotate_vector.hpp>
+#include <thread>
 
 
 
@@ -26,7 +27,20 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 */
 class Object {
 public:
-	virtual double getDist(glm::vec3 point, glm::vec3 dir) = 0;
+	typedef struct hit {
+		glm::vec3 position;
+		double t;
+	};
+
+	virtual hit getDist(glm::vec3 point, glm::vec3 dir) = 0;
+
+	typedef struct payload {
+		glm::vec3 color;
+	};
+
+	virtual payload getPayload(glm::vec3 point)=0;
+
+	
 private:
 };
 
@@ -50,11 +64,14 @@ public:
 	// this is for other calculations
 	plane p;
 	glm::vec3 normal;
+	glm::vec3 color;
 
 	Triangle() {
 		p1 = { -1,-1,0 };
 		p2 = { 1,-1,0 };
 		p3 = { 0,1,0 };
+
+		color = { 100,100,100 };
 
 		glm::vec3 b = p1 - p2;
 		glm::vec3 c = p1 - p3;
@@ -64,10 +81,12 @@ public:
 		p = { normal,p1 };
 		
 	}
-	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_) {
+	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_, glm::vec3 color_) {
 		p1 = p1_;
 		p2 = p2_;
 		p3 = p3_;
+
+		color = color_;
 
 		glm::vec3 b = p1 - p2;
 		glm::vec3 c = p1 - p3;
@@ -76,7 +95,7 @@ public:
 		// this is our plane equation
 		p = { normal,p1 };
 	}
-	double getDist(glm::vec3 orgin, glm::vec3 dir) {
+	hit getDist(glm::vec3 orgin, glm::vec3 dir) {
 
 		// get distance along line
 		double t = glm::dot((p1 - orgin), normal) / glm::dot(dir, normal);
@@ -99,13 +118,18 @@ public:
 			glm::dot(normal, glm::cross(edge2, C2)) > 0.0;
 
 		if (inside) {
-			return t;
+			return {I,t};
 		}
 		else {
-			return -1;
+			return { I,-1 };
 		}
 
 	}
+
+	payload getPayload(glm::vec3 position) {
+		return {color};
+	}
+
 
 private:
 
@@ -119,9 +143,14 @@ public:
 	Sphere() {
 
 	};
-	double getDist(glm::vec3 point, glm::vec3 dir) {
-
+	hit getDist(glm::vec3 point, glm::vec3 dir) {
+		return { glm::vec3(1,1,1),1 };
 	}
+
+	payload getPayload(glm::vec3 position) {
+		return { position };
+	}
+
 private:
 };
 
@@ -146,6 +175,12 @@ public:
 	float moveSpeed=moveBaseSpeed;
 	float rotBaseSpeed = 40.0;
 	float rotSpeed=rotBaseSpeed;
+
+	// camera view plane sizes. Sort of determines the distance between each pixel
+	// these are multipliers for the size of the viewing plane
+	float camera_viewport_width = 2.0;
+	float camera_viewport_height = 2.0;
+	float camera_viewport_depth = 1.0;
 
 
 
@@ -284,25 +319,13 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 	ldown = glfwGetKey(window, GLFW_KEY_DOWN);
 
 
-
-
 }
 
-// taylor series for cos to speed up the code
-float cos2(float input) {
-	return 1.0 - pow(input, 2) / 2.0 + pow(input, 4) / 24.0 - pow(input,6)/720.0;
-}
-
-// taylor series for sin to speed up the code
-float sin2(float input) {
-	return input - pow(input, 3) / 6.0 +
-		pow(input, 5) /120.0 - pow(input, 7) / 5040.0;
-}
-
-// we will have to rewrite the rotate function to use these, luckly, glm::rotate is public code
 
 
 int main() {
+	
+
 
 	// make camera a public variable
 	Camera camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0));
@@ -311,43 +334,42 @@ int main() {
 	// vector of all triangles to draw
 	std::vector<Triangle> triangles;
 
-	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1} });
+	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1}, {0,0,100} });
 
 	int len = 10;
 	// random floor
 	triangles.push_back({
 		{-len,-len,-len},
 		{-len,-len,len},
-		{len,-len,len}
+		{len,-len,len},
+		{0,100,0}
 		});
 
 	triangles.push_back({
 		{len,-len,len},
 		{len,-len,-len},
-		{-len,-len,-len}
+		{-len,-len,-len},
+		{100,0,0}
 		});
 
-	// generate a lot of random triangles
-	for (int i = 0; i < 0; i++) {
-		triangles.push_back({ { (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50 },
-			{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50},
-			{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 } });
-	}
+	//// generate a lot of random triangles
+	//for (int i = 0; i < 0; i++) {
+	//	triangles.push_back({ { (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50 },
+	//		{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50},
+	//		{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 } });
+	//}
 
 	
 
 	// This is the size for the number of rays to cast out. So length*width is the total.
-	int width = 1200;
-	int height = 600;
+	int width = 1200*2;
+	int height = 600*2;
 	// this is the size of the output(display) window
-	int win_width = 1600;
+	int win_width = 2000;
 	int win_height = 800;
 
 
-	// camera information
-	double camera_viewport_width = 2;
-	double camera_viewport_height = 2;
-	double camera_viewport_depth = 1;
+	
 
 
 	// opengl stuff here
@@ -499,53 +521,62 @@ int main() {
 
 		int index = 0;
 
-
+		// iterate through all pixels here
 		for (int i = -height / 2; i < height / 2; i++) {
 
 			for (int j = -width / 2; j < width / 2; j++) {
 
 				// reference to closest triangle
-				Triangle out;
+				Triangle out_tri;
+				Object::hit out_hit;
 				double mint = 1000000000;
 				bool found = false;
 
 				// convert camera plane pixel to into a range
-				float u = j / (float)height/camera_viewport_width;
-				float v = i / (float)width/camera_viewport_height;
+				float u = j / (float)height*camera.camera_viewport_width;
+				float v = i / (float)width*camera.camera_viewport_height;
 
 				// rotate the camrea plane pixel around the camera's location
 				glm::mat4 trans = glm::mat4(1.0f);
 				trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
 				trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
-				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera_viewport_depth, 1.0);
+				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera.camera_viewport_depth, 1.0);
 
 				// now get the first 3 elements of pixel2 for the new location of the pixel
 				glm::vec3 pixel = {pixel2.x,pixel2.y,pixel2.z};
 
 				// define t out here so we can use it outside of the for loop scope
 				double t;
+				Triangle tri;
+				Object::hit hit;
 
 				for (int k = 0; k < triangles.size(); k++) {
-					Triangle tr = triangles[k];
+					tri = triangles[k];
 
 					// get the distance for this triangle
-					t = tr.getDist(camera.position, pixel);
+					hit = tri.getDist(camera.position, pixel);
 
 					// update the closes triangle here
-					if (t > camera_viewport_depth && t < mint) {
-						out = tr;
-						mint = t;
+					if (hit.t > camera.camera_viewport_depth && hit.t < mint) {
+						out_tri = tri;
+						out_hit = hit;
+						mint = hit.t;
 						found = true;
+
 					}
 
 				}
 
+				//Object::payload color = out.getPayload();
+				// now we have the closest object and point so
+				// we can get the color at that point
 
 				// update the colors here
 				if (found) {
-					data[index++] = i;
-					data[index++] = j;
-					data[index++] = (i+j)/2.0;
+					Object::payload payLoad = out_tri.getPayload(hit.position);
+					data[index++] = payLoad.color.x;
+					data[index++] = payLoad.color.y;
+					data[index++] = payLoad.color.z;
 
 
 				}
