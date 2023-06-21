@@ -320,8 +320,98 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 
 }
+// This is the size for the number of rays to cast out. So length*width is the total.
+int const width = 400;
+int const height = 300;
+// this is the size of the output(display) window
+int win_width = 800;
+int win_height = 600;
+
+void castRay(unsigned char* data, int i, int j, int width, int height, Camera* camera, std::vector<Triangle>* triangles) {
+
+	//std::cout << index << "\n";
+	// reference to closest triangle
+	Triangle out_tri;
+	Object::hit out_hit;
+	double mint = 1000000000;
+	bool found = false;
+	
+
+	// convert camera plane pixel to into a range
+	float u = (j) / (float)height * camera->camera_viewport_width;
+	float v = (i) / (float)width * camera->camera_viewport_height;
+
+	// rotate the camrea plane pixel around the camera's location
+	glm::mat4 trans = glm::mat4(1.0f);
+	trans = glm::rotate(trans, glm::radians((float)camera->rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
+	trans = glm::rotate(trans, glm::radians(-(float)camera->rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
+	glm::vec4 pixel2 = trans * glm::vec4(u, v, camera->camera_viewport_depth, 1.0);
+
+	// now get the first 3 elements of pixel2 for the new location of the pixel
+	glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
+
+	// define t out here so we can use it outside of the for loop scope
+	double t;
+	Triangle tri;
+	Object::hit hit;
+
+	for (int k = 0; k < triangles->size(); k++) {
+		tri = (*triangles)[k];
+
+		// get the distance for this triangle
+		hit = tri.getDist(camera->position, pixel);
+
+		// update the closes triangle here
+		if (hit.t > camera->camera_viewport_depth && hit.t < mint) {
+			out_tri = tri;
+			out_hit = hit;
+			mint = hit.t;
+			found = true;
+
+		}
+
+	}
+
+	//Object::payload color = out.getPayload();
+	// now we have the closest object and point so
+	// we can get the color at that point
+
+	// update the colors here
+	// i is height
+	// j is width
+	//int index2 = ((i+width/2) * 3) * height/2 + j * 3;
+	i = i + height / 2;
+	j = j + width / 2;
+	//std::cout << "("<<i << " " << j << ")  ";
+	int index0 = (i*width)*3 + j*3 + 0;
+	int index1 = i*width*3 + j*3 + 1;
+	int index2 = i*width*3 + j*3 + 2;
+
+	//std::cout << index0 << " " << index1 << " " << index2 <<  " " << i << " " << j << "\n";
+
+	if (found) {
+		Object::payload payLoad = out_tri.getPayload(hit.position);
+		//data[i][j][0] = payLoad.color.x;
+		//data[i][j][1] = payLoad.color.y;
+		//data[i][j][2] = payLoad.color.z;
+		data[index0] = payLoad.color.x;
+		data[index1] = payLoad.color.y;
+		data[index2] = payLoad.color.z;
 
 
+	}
+	else {
+		// set background color
+		data[index0] = 0;
+		data[index1] = 0;
+		data[index2] = 0;
+
+
+
+	}
+}
+#include <algorithm>
+#include <execution>
 
 int main() {
 	
@@ -361,15 +451,10 @@ int main() {
 
 	
 
-	// This is the size for the number of rays to cast out. So length*width is the total.
-	int width = 1200*2;
-	int height = 600*2;
-	// this is the size of the output(display) window
-	int win_width = 2000;
-	int win_height = 800;
 
 
-	
+
+
 
 
 	// opengl stuff here
@@ -460,26 +545,66 @@ int main() {
 	// texture stuff
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 
 	// this array will hold the color for each pixel we send a ray out for
-	int channels = 3;
+	int const channels = 3;
 	// width and height are defined above
 	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width * height * channels);
+
+	//unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char))
+	//unsigned char data[width][height][channels]{};
+	//unsigned char*** data = (unsigned char**)malloc(sizeof(unsigned int**))
 	int c = 0;
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
-
-			data[c++] = 0;
-			data[c++] = 0;
-			data[c++] = 0;
+				data[c++] = 0;
+				data[c++] = 0;
+				data[c++] = 0;
+			
+			//c++;
+			//data[i][j] = 0;
 		}
 	}
 
+	//data[0][0][0] = 255;
+	//data[0][0][1] = 255;
+	//data[0][0][2] = 255;
+
+	//data[0][1][0] = 255;
+	//data[0][1][1] = 0;
+	//data[0][1][2] = 255;
+
+	//data[0][2][0] = 255;
+	//data[0][2][1] = 0;
+	//data[0][2][2] = 255;
+	//data[0][0][0] = 1;
+	//data[0][0][1] = 2;
+	//data[0][0][2] = 3;
+
+	//int c = 0;
+	//for (int i = 0; i < width; i++) {
+	//	for (int j = 0; j < height; j++) {
+
+	//		data2[c++] = 255;
+	//		data2[c++] = 0;
+	//		data2[c++] = 120;
+	//	}
+	//}
+
+
+	//exit(0);
+	/*
+	* -w/2,h/2==0
+	* w/2,h/2==w
+	* -w/2,-h/2==h*w
+	* w/2,-h/2==h*w+w
+	* 
+	*/
 
 	unsigned int texture;
 	glGenTextures(1, &texture);
@@ -521,78 +646,58 @@ int main() {
 
 		int index = 0;
 
+		//std::vector<int> horizontal(width), vertical(height);
+		//std::iota(std::begin(horizontal), std::end(horizontal), -height/2);
+		
+		//std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal), [](int i) {i = i + 1; });
+		
+
+		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+		//	[data,index,width,height,&camera,&triangles,horizontal
+		//	](int y) {
+		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+		//			[horizontal,y,data,index,width,height,&camera,&triangles](int x) {
+		//				castRay(data, index, y, x, width, height, &camera, &triangles);
+		//			}
+		//		);
+		//	}
+		//);
+
+		// We have one thread for each pixel
+		std::vector<std::thread> threads;
+		//for (int i = 0; i < 1000; i++) {
+		//	threads.push_back(std::thread([](int i) {std::cout << i << "\n"; }));
+		//}
+		std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
 		// iterate through all pixels here
-		for (int i = -height / 2; i < height / 2; i++) {
+		for (int i = -height/2; i < height/2; i++) {
 
-			for (int j = -width / 2; j < width / 2; j++) {
-
-				// reference to closest triangle
-				Triangle out_tri;
-				Object::hit out_hit;
-				double mint = 1000000000;
-				bool found = false;
-
-				// convert camera plane pixel to into a range
-				float u = j / (float)height*camera.camera_viewport_width;
-				float v = i / (float)width*camera.camera_viewport_height;
-
-				// rotate the camrea plane pixel around the camera's location
-				glm::mat4 trans = glm::mat4(1.0f);
-				trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
-				trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
-				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera.camera_viewport_depth, 1.0);
-
-				// now get the first 3 elements of pixel2 for the new location of the pixel
-				glm::vec3 pixel = {pixel2.x,pixel2.y,pixel2.z};
-
-				// define t out here so we can use it outside of the for loop scope
-				double t;
-				Triangle tri;
-				Object::hit hit;
-
-				for (int k = 0; k < triangles.size(); k++) {
-					tri = triangles[k];
-
-					// get the distance for this triangle
-					hit = tri.getDist(camera.position, pixel);
-
-					// update the closes triangle here
-					if (hit.t > camera.camera_viewport_depth && hit.t < mint) {
-						out_tri = tri;
-						out_hit = hit;
-						mint = hit.t;
-						found = true;
-
-					}
-
-				}
-
-				//Object::payload color = out.getPayload();
-				// now we have the closest object and point so
-				// we can get the color at that point
-
-				// update the colors here
-				if (found) {
-					Object::payload payLoad = out_tri.getPayload(hit.position);
-					data[index++] = payLoad.color.x;
-					data[index++] = payLoad.color.y;
-					data[index++] = payLoad.color.z;
-
-
-				}
-				else {
-					// set background color
-					data[index++] = 0;
-					data[index++] = 0;
-					data[index++] = 0;
-
-
-				}
+			for (int j = -width/2; j < width/2; j++) {
+				//std::cout << "" << i-height/2 << "," << j-width/2 << " ";
+				//threads.push_back(std::thread(castRay, data, index, i, j, width, height, &camera, &triangles));
+				castRay(data,i, j, width, height, &camera, &triangles);
+				//index++;
+				//index++;
+				//index++;
 				
 
 			}
+			//std::cout << "\n";
 
 		}
+		
+		std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();
+		for (std::thread& t : threads) {
+			//t.join();
+			//t.join();
+		}
+		std::chrono::steady_clock::time_point begin4 = std::chrono::steady_clock::now();
+		//threads.clear();
+
+		std::cout << "before ray casting: " << (begin2 - begin).count() / 1000000 <<
+			"   after setting threads: " << (begin3 - begin2).count() / 1000000 << "  after joining: " <<
+			(begin4 - begin2).count() / 1000000 << "\n";
+		
 
 
 
