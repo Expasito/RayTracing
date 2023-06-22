@@ -320,17 +320,10 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 
 }
-// This is the size for the number of rays to cast out. So length*width is the total.
-int const width = 400;
-int const height = 300;
-// this is the size of the output(display) window
-int win_width = 800;
-int win_height = 600;
+
 
 void castRay(unsigned char* data, int i, int j, int width, int height, Camera* camera, std::vector<Triangle>* triangles) {
-
-	//std::cout << index << "\n";
-	// reference to closest triangle
+	// reference for closest triangle
 	Triangle out_tri;
 	Object::hit out_hit;
 	double mint = 1000000000;
@@ -372,39 +365,23 @@ void castRay(unsigned char* data, int i, int j, int width, int height, Camera* c
 
 	}
 
-	//Object::payload color = out.getPayload();
-	// now we have the closest object and point so
-	// we can get the color at that point
 
-	// update the colors here
-	// i is height
-	// j is width
-	//int index2 = ((i+width/2) * 3) * height/2 + j * 3;
-	i = i + height / 2;
-	j = j + width / 2;
-	//std::cout << "("<<i << " " << j << ")  ";
-	int index0 = (i*width)*3 + j*3 + 0;
-	int index1 = i*width*3 + j*3 + 1;
-	int index2 = i*width*3 + j*3 + 2;
-
-	//std::cout << index0 << " " << index1 << " " << index2 <<  " " << i << " " << j << "\n";
+	// this is where in the array to set the colors
+	int index = (i + height / 2) * width * 3 + (j + width / 2) * 3;
 
 	if (found) {
 		Object::payload payLoad = out_tri.getPayload(hit.position);
-		//data[i][j][0] = payLoad.color.x;
-		//data[i][j][1] = payLoad.color.y;
-		//data[i][j][2] = payLoad.color.z;
-		data[index0] = payLoad.color.x;
-		data[index1] = payLoad.color.y;
-		data[index2] = payLoad.color.z;
+		data[index] = payLoad.color.x;
+		data[index + 1] = payLoad.color.y;
+		data[index + 2] = payLoad.color.z;
 
 
 	}
 	else {
 		// set background color
-		data[index0] = 0;
-		data[index1] = 0;
-		data[index2] = 0;
+		data[index] = 0;
+		data[index + 1] = 0;
+		data[index + 2] = 0;
 
 
 
@@ -442,16 +419,22 @@ int main() {
 		{100,0,0}
 		});
 
-	//// generate a lot of random triangles
-	//for (int i = 0; i < 0; i++) {
+	// generate a lot of random triangles
+	//for (int i = 0; i < 40; i++) {
 	//	triangles.push_back({ { (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50 },
 	//		{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50},
-	//		{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 } });
+	//		{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 },
+	//		{100,200,10} });
 	//}
 
 	
 
-
+	// This is the size for the number of rays to cast out. So length*width is the total.
+	int width = 800;
+	int height = 600;
+	// this is the size of the output(display) window
+	int win_width = 1200;
+	int win_height = 800;
 
 
 
@@ -545,10 +528,10 @@ int main() {
 	// texture stuff
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 
 
 	// this array will hold the color for each pixel we send a ray out for
@@ -556,9 +539,7 @@ int main() {
 	// width and height are defined above
 	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width * height * channels);
 
-	//unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char))
-	//unsigned char data[width][height][channels]{};
-	//unsigned char*** data = (unsigned char**)malloc(sizeof(unsigned int**))
+	// fill the array with zeros
 	int c = 0;
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
@@ -566,45 +547,11 @@ int main() {
 				data[c++] = 0;
 				data[c++] = 0;
 			
-			//c++;
-			//data[i][j] = 0;
+
 		}
 	}
 
-	//data[0][0][0] = 255;
-	//data[0][0][1] = 255;
-	//data[0][0][2] = 255;
 
-	//data[0][1][0] = 255;
-	//data[0][1][1] = 0;
-	//data[0][1][2] = 255;
-
-	//data[0][2][0] = 255;
-	//data[0][2][1] = 0;
-	//data[0][2][2] = 255;
-	//data[0][0][0] = 1;
-	//data[0][0][1] = 2;
-	//data[0][0][2] = 3;
-
-	//int c = 0;
-	//for (int i = 0; i < width; i++) {
-	//	for (int j = 0; j < height; j++) {
-
-	//		data2[c++] = 255;
-	//		data2[c++] = 0;
-	//		data2[c++] = 120;
-	//	}
-	//}
-
-
-	//exit(0);
-	/*
-	* -w/2,h/2==0
-	* w/2,h/2==w
-	* -w/2,-h/2==h*w
-	* w/2,-h/2==h*w+w
-	* 
-	*/
 
 	unsigned int texture;
 	glGenTextures(1, &texture);
@@ -632,6 +579,11 @@ int main() {
 	std::chrono::steady_clock::time_point end;
 	float milis=0;
 
+	// these are the vectors for the for_each loops so they can iterate
+	std::vector<int> horizontal(width), vertical(height);
+	std::iota(std::begin(horizontal), std::end(horizontal), -width / 2);
+	std::iota(std::begin(vertical), std::end(vertical), -height / 2);
+
 
 	// now for the run loop
 	while (!glfwWindowShouldClose(window)) {
@@ -644,59 +596,22 @@ int main() {
 		glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		int index = 0;
 
-		//std::vector<int> horizontal(width), vertical(height);
-		//std::iota(std::begin(horizontal), std::end(horizontal), -height/2);
-		
-		//std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal), [](int i) {i = i + 1; });
-		
 
-		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
-		//	[data,index,width,height,&camera,&triangles,horizontal
-		//	](int y) {
-		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
-		//			[horizontal,y,data,index,width,height,&camera,&triangles](int x) {
-		//				castRay(data, index, y, x, width, height, &camera, &triangles);
-		//			}
-		//		);
-		//	}
-		//);
+	
 
-		// We have one thread for each pixel
-		std::vector<std::thread> threads;
-		//for (int i = 0; i < 1000; i++) {
-		//	threads.push_back(std::thread([](int i) {std::cout << i << "\n"; }));
-		//}
-		std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
-		// iterate through all pixels here
-		for (int i = -height/2; i < height/2; i++) {
-
-			for (int j = -width/2; j < width/2; j++) {
-				//std::cout << "" << i-height/2 << "," << j-width/2 << " ";
-				//threads.push_back(std::thread(castRay, data, index, i, j, width, height, &camera, &triangles));
-				castRay(data,i, j, width, height, &camera, &triangles);
-				//index++;
-				//index++;
-				//index++;
-				
-
+		// new execution
+		std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+			[data,width,height,&camera,&triangles,horizontal
+			](int y) {
+				std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+					[horizontal,y,data,width,height,&camera,&triangles](int x) {
+						castRay(data, y, x, width, height, &camera, &triangles);
+					}
+				);
 			}
-			//std::cout << "\n";
+		);
 
-		}
-		
-		std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();
-		for (std::thread& t : threads) {
-			//t.join();
-			//t.join();
-		}
-		std::chrono::steady_clock::time_point begin4 = std::chrono::steady_clock::now();
-		//threads.clear();
-
-		std::cout << "before ray casting: " << (begin2 - begin).count() / 1000000 <<
-			"   after setting threads: " << (begin3 - begin2).count() / 1000000 << "  after joining: " <<
-			(begin4 - begin2).count() / 1000000 << "\n";
 		
 
 
