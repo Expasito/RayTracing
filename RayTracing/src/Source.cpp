@@ -96,6 +96,7 @@ public:
 		p = { normal,p1 };
 	}
 	hit getDist(glm::vec3 orgin, glm::vec3 dir) {
+		//printf("Dir: %f %f %f\n", dir.x, dir.y, dir.z);
 
 		// get distance along line
 		double t = glm::dot((p1 - orgin), normal) / glm::dot(dir, normal);
