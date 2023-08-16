@@ -15,6 +15,49 @@
 
 
 
+
+float magnitude(glm::vec3 a) {
+	return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+
+struct Triangle {
+	// we have the point vector and its normal
+	glm::vec3 p;
+	glm::vec3 n;
+
+	glm::vec3 p1;
+	glm::vec3 p2;
+	glm::vec3 p3;
+
+	glm::vec3 edge0, edge1, edge2;
+	glm::vec3 color;
+
+	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_, glm::vec3 color_) {
+		p1 = p1_; p2 = p2_; p3 = p3_;
+		// default to p1 here
+		p = p1;
+		n = cross(p1_ - p2_, p1_ - p3_);
+
+		// precalculate these since our triangles do not move
+		edge0 = p2 - p1;
+		edge1 = p3 - p2;
+		edge2 = p1 - p3;
+
+		color = color_;
+	}
+
+};
+std::vector<Triangle> triangles;
+
+struct Light {
+	glm::vec3 position;
+	float intensity;
+};
+std::vector<Light> lights;
+
+
+
 std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 {
 	os << vec.x << ' ' << vec.y << ' ' << vec.z;
@@ -22,138 +65,6 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 }
 
 
-/*
-* This is the base object class for triangles and spheres
-*/
-class Object {
-public:
-	typedef struct hit {
-		glm::vec3 position;
-		double t;
-	};
-
-	virtual hit getDist(glm::vec3 point, glm::vec3 dir) = 0;
-
-	typedef struct payload {
-		glm::vec3 color;
-	};
-
-	virtual payload getPayload(glm::vec3 point)=0;
-
-	
-private:
-};
-
-
-/*
-* This is just a plane for the triangle based on a point and normal to it
-*/
-struct plane {
-	glm::vec3 n;
-	glm::vec3 p;
-};
-
-
-
-class Triangle : public Object {
-public:
-	glm::vec3 p1 = { 0,0,0 };
-	glm::vec3 p2 = { 0,0,0 };
-	glm::vec3 p3 = { 0,0,0 };
-
-	// this is for other calculations
-	plane p;
-	glm::vec3 normal;
-	glm::vec3 color;
-
-	Triangle() {
-		p1 = { -1,-1,0 };
-		p2 = { 1,-1,0 };
-		p3 = { 0,1,0 };
-
-		color = { 100,100,100 };
-
-		glm::vec3 b = p1 - p2;
-		glm::vec3 c = p1 - p3;
-		normal = glm::cross(b, c);
-
-		// this is our plane equation
-		p = { normal,p1 };
-		
-	}
-	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_, glm::vec3 color_) {
-		p1 = p1_;
-		p2 = p2_;
-		p3 = p3_;
-
-		color = color_;
-
-		glm::vec3 b = p1 - p2;
-		glm::vec3 c = p1 - p3;
-		normal = glm::cross(b, c);
-
-		// this is our plane equation
-		p = { normal,p1 };
-	}
-	hit getDist(glm::vec3 orgin, glm::vec3 dir) {
-		//printf("Dir: %f %f %f\n", dir.x, dir.y, dir.z);
-
-		// get distance along line
-		double t = glm::dot((p1 - orgin), normal) / glm::dot(dir, normal);
-
-		// get location of where the ray hits the plane
-		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-		
-		// triangle intersection formula
-		glm::vec3 edge0 = p2 - p1;
-		glm::vec3 edge1 = p3 - p2;
-		glm::vec3 edge2 = p1 - p3;
-		glm::vec3 C0 = I - p1;
-		glm::vec3 C1 = I - p2;
-		glm::vec3 C2 = I - p3;
-
-		// check if the point is inside of the triangle
-		bool inside =
-			glm::dot(normal, glm::cross(edge0, C0)) > 0.0 &&
-			glm::dot(normal, glm::cross(edge1, C1)) > 0.0 &&
-			glm::dot(normal, glm::cross(edge2, C2)) > 0.0;
-
-		if (inside) {
-			return {I,t};
-		}
-		else {
-			return { I,-1 };
-		}
-
-	}
-
-	payload getPayload(glm::vec3 position) {
-		return {color};
-	}
-
-
-private:
-
-};
-
-/*
-* Will implement later. Used for spheres (obviously)
-*/ 
-class Sphere : public Object {
-public:
-	Sphere() {
-
-	};
-	hit getDist(glm::vec3 point, glm::vec3 dir) {
-		return { glm::vec3(1,1,1),1 };
-	}
-
-	payload getPayload(glm::vec3 position) {
-		return { position };
-	}
-
-private:
-};
 
 
 /*
@@ -323,71 +234,116 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 
-void castRay(unsigned char* data, int i, int j, int width, int height, Camera* camera, std::vector<Triangle>* triangles) {
-	// reference for closest triangle
-	Triangle out_tri;
-	Object::hit out_hit;
-	double mint = 1000000000;
+//void castRay(unsigned char* data, int i, int j, int width, int height, Camera* camera, std::vector<Triangle>* triangles) {
+//	// reference for closest triangle
+//	Triangle out_tri;
+//	Object::hit out_hit;
+//	double mint = 1000000000;
+//	bool found = false;
+//	
+//
+//	// convert camera plane pixel to into a range
+//	float u = (j) / (float)height * camera->camera_viewport_width;
+//	float v = (i) / (float)width * camera->camera_viewport_height;
+//
+//	// rotate the camrea plane pixel around the camera's location
+//	glm::mat4 trans = glm::mat4(1.0f);
+//	trans = glm::rotate(trans, glm::radians((float)camera->rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
+//	trans = glm::rotate(trans, glm::radians(-(float)camera->rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
+//	glm::vec4 pixel2 = trans * glm::vec4(u, v, camera->camera_viewport_depth, 1.0);
+//
+//	// now get the first 3 elements of pixel2 for the new location of the pixel
+//	glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
+//
+//	// define t out here so we can use it outside of the for loop scope
+//	double t;
+//	Triangle tri;
+//	Object::hit hit;
+//
+//	for (int k = 0; k < triangles->size(); k++) {
+//		tri = (*triangles)[k];
+//
+//		// get the distance for this triangle
+//		hit = tri.getDist(camera->position, pixel);
+//
+//		// update the closes triangle here
+//		if (hit.t > camera->camera_viewport_depth && hit.t < mint) {
+//			out_tri = tri;
+//			out_hit = hit;
+//			mint = hit.t;
+//			found = true;
+//
+//		}
+//
+//	}
+//
+//
+//	// this is where in the array to set the colors
+//	int index = (i + height / 2) * width * 3 + (j + width / 2) * 3;
+//
+//	if (found) {
+//		Object::payload payLoad = out_tri.getPayload(hit.position);
+//		data[index] = payLoad.color.x;
+//		data[index + 1] = payLoad.color.y;
+//		data[index + 2] = payLoad.color.z;
+//
+//
+//	}
+//	else {
+//		// set background color
+//		data[index] = 0;
+//		data[index + 1] = 0;
+//		data[index + 2] = 0;
+//
+//
+//
+//	}
+//}
+
+
+struct PayLoad {
+	glm::vec3 point;
+	glm::vec3 color;
+	float distance;
+	Triangle* cur;
+	bool didHit;
+};
+
+PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
+	PayLoad closest = { {0,0,0},{0,0,0},1e9,NULL,false };
 	bool found = false;
-	
-
-	// convert camera plane pixel to into a range
-	float u = (j) / (float)height * camera->camera_viewport_width;
-	float v = (i) / (float)width * camera->camera_viewport_height;
-
-	// rotate the camrea plane pixel around the camera's location
-	glm::mat4 trans = glm::mat4(1.0f);
-	trans = glm::rotate(trans, glm::radians((float)camera->rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
-	trans = glm::rotate(trans, glm::radians(-(float)camera->rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
-	glm::vec4 pixel2 = trans * glm::vec4(u, v, camera->camera_viewport_depth, 1.0);
-
-	// now get the first 3 elements of pixel2 for the new location of the pixel
-	glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
-
-	// define t out here so we can use it outside of the for loop scope
-	double t;
-	Triangle tri;
-	Object::hit hit;
-
-	for (int k = 0; k < triangles->size(); k++) {
-		tri = (*triangles)[k];
-
-		// get the distance for this triangle
-		hit = tri.getDist(camera->position, pixel);
-
-		// update the closes triangle here
-		if (hit.t > camera->camera_viewport_depth && hit.t < mint) {
-			out_tri = tri;
-			out_hit = hit;
-			mint = hit.t;
-			found = true;
-
+	for (Triangle& triangle : triangles) {
+		if (&triangle == curr) {
+			// skip the matched one if curr is a Triangle*
+			continue;
 		}
 
+		float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
+		// negative t values get filtered out already so do it now
+		if (t < 0) {
+			continue;
+		}
+
+
+		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+
+
+		if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
+			dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
+			dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
+			) {
+			if (t < closest.distance && t > 0.00001) {
+				//printf("here\n");
+				closest = { I,triangle.color,t ,&triangle,true };
+				found = true;
+			}
+		}
 	}
+	return closest;
 
-
-	// this is where in the array to set the colors
-	int index = (i + height / 2) * width * 3 + (j + width / 2) * 3;
-
-	if (found) {
-		Object::payload payLoad = out_tri.getPayload(hit.position);
-		data[index] = payLoad.color.x;
-		data[index + 1] = payLoad.color.y;
-		data[index + 2] = payLoad.color.z;
-
-
-	}
-	else {
-		// set background color
-		data[index] = 0;
-		data[index + 1] = 0;
-		data[index + 2] = 0;
-
-
-
-	}
 }
+
+
 #include <algorithm>
 #include <execution>
 
@@ -399,10 +355,9 @@ int main() {
 	Camera camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0));
 
 
-	// vector of all triangles to draw
-	std::vector<Triangle> triangles;
 
-	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1}, {0,0,100} });
+
+	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1}, {255,0,0} });
 
 	int len = 10;
 	// random floor
@@ -410,14 +365,14 @@ int main() {
 		{-len,-len,-len},
 		{-len,-len,len},
 		{len,-len,len},
-		{0,100,0}
+		{0,255,0}
 		});
 
 	triangles.push_back({
 		{len,-len,len},
 		{len,-len,-len},
 		{-len,-len,-len},
-		{100,0,0}
+		{0,0,255}
 		});
 
 	// generate a lot of random triangles
@@ -432,9 +387,9 @@ int main() {
 
 	// This is the size for the number of rays to cast out. So length*width is the total.
 	int width = 800;
-	int height = 600;
+	int height = 800;
 	// this is the size of the output(display) window
-	int win_width = 1200;
+	int win_width = 800;
 	int win_height = 800;
 
 
@@ -601,19 +556,56 @@ int main() {
 
 	
 
-		// new execution
-		std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
-			[data,width,height,&camera,&triangles,horizontal
-			](int y) {
-				std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
-					[horizontal,y,data,width,height,&camera,&triangles](int x) {
-						castRay(data, y, x, width, height, &camera, &triangles);
-					}
-				);
-			}
-		);
+		//// new execution
+		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+		//	[data,width,height,&camera,&triangles,horizontal
+		//	](int y) {
+		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+		//			[horizontal,y,data,width,height,&camera,&triangles](int x) {
+		//				castRay(data, y, x, width, height, &camera, &triangles);
+		//			}
+		//		);
+		//	}
+		//);
+		int index = 0;
+		for (int y = 0; y <height; y++) {
+			for (int x = 0; x < width; x++) {
+				glm::vec3 dir, origin;
 
-		
+				// convert camera plane pixel to into a range
+				float v = (y - height / 2) / (float)height;
+				float u = (x - width / 2) / (float)width;
+//
+				// rotate the camrea plane pixel around the camera's location
+				glm::mat4 trans = glm::mat4(1.0f);
+				trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
+				trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
+				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera.camera_viewport_depth, 1.0);
+//
+//	// now get the first 3 elements of pixel2 for the new location of the pixel
+					glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
+					dir = pixel;
+					//std::cout << dir << "\n";
+				//origin = {0,0,-5};
+				origin = camera.position;
+				PayLoad hit = castRay(origin, dir, NULL);
+				if (hit.didHit) {
+					data[index] = hit.color.x;
+					data[index + 1] = hit.color.y;
+					data[index + 2] = hit.color.z;
+				}
+				else {
+					data[index] = hit.color.x;
+					data[index + 1] = hit.color.y;
+					data[index + 2] = hit.color.z;
+				}
+				index += 3;
+			}
+		}
+
+
+		//camera.direction.y += .01;
+		std::cout << camera.direction << "\n";
 
 
 
