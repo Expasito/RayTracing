@@ -309,7 +309,11 @@ struct PayLoad {
 	bool didHit;
 };
 
+int castRayCalls = 0;
+
 PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
+	// add 1 to the counter
+	castRayCalls += 1;
 	PayLoad closest = { {0,0,0},{0,0,0},1e9,NULL,false };
 	bool found = false;
 	for (Triangle& triangle : triangles) {
@@ -347,6 +351,8 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 #include <algorithm>
 #include <execution>
 
+
+
 int main() {
 	
 
@@ -357,21 +363,36 @@ int main() {
 
 
 
-	triangles.push_back({ {-1,-1,1},{-1,1,1},{1,-1,1}, {255,0,0} });
+	triangles.push_back({ {-1,-1,-1},{0,1,1},{1,-1,-1}, {255,0,0} });
 
-	int len = 10;
+	int len = 5;
+	int heigh = 1;
 	// random floor
 	triangles.push_back({
-		{-len,-len,-len},
-		{-len,-len,len},
-		{len,-len,len},
+		{-len,-heigh,-len},
+		{-len,-heigh,len},
+		{len,-heigh,len},
 		{0,255,0}
 		});
 
 	triangles.push_back({
-		{len,-len,len},
-		{len,-len,-len},
-		{-len,-len,-len},
+		{len,-heigh,len},
+		{len,-heigh,-len},
+		{-len,-heigh,-len},
+		{0,0,255}
+		});
+
+	triangles.push_back({
+		{-len,-heigh-1,-len},
+		{-len,-heigh-1,len},
+		{len,-heigh-1,len},
+		{0,255,0}
+		});
+
+	triangles.push_back({
+		{len,-heigh-1,len},
+		{len,-heigh-1,-len},
+		{-len,-heigh-1,-len},
 		{0,0,255}
 		});
 
@@ -540,12 +561,13 @@ int main() {
 	std::iota(std::begin(horizontal), std::end(horizontal), -width / 2);
 	std::iota(std::begin(vertical), std::end(vertical), -height / 2);
 
+	// For performance, we will update either the top or bottom per frame
+	bool writeTop = false;
 
 	// now for the run loop
 	while (!glfwWindowShouldClose(window)) {
 
 		// start clock
-		begin = std::chrono::steady_clock::now();
 		
 
 		// clear the screen
@@ -553,6 +575,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
+		begin = std::chrono::steady_clock::now();
 
 	
 
@@ -567,8 +590,37 @@ int main() {
 		//		);
 		//	}
 		//);
-		int index = 0;
-		for (int y = 0; y <height; y++) {
+
+		// reset counter
+		castRayCalls = 0;
+
+
+		//int index = 0;
+		int startY = 0;
+		int endY = height/2;
+
+		if (writeTop == true) {
+			startY = 0;
+			endY = height;
+			//index = 0;
+		}
+		else {
+			startY = 1;
+			endY = height;
+			//index = height / 2 * 3;
+		}
+		writeTop = !writeTop;
+		
+		//if (writeTop) {
+			//goto EXIT;
+		//}
+		
+		// Currently, this updates every other pixel and starts at 0 or 1 
+		// So it should look better than updating the top half or bottom half
+
+		// For now, we will not to test performance better
+		startY = 0;
+		for (int y = startY; y <endY; y++) {
 			for (int x = 0; x < width; x++) {
 				glm::vec3 dir, origin;
 
@@ -581,31 +633,49 @@ int main() {
 				trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
 				trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
 				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera.camera_viewport_depth, 1.0);
-//
-//	// now get the first 3 elements of pixel2 for the new location of the pixel
-					glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
-					dir = pixel;
-					//std::cout << dir << "\n";
-				//origin = {0,0,-5};
+
+
+				// now get the first 3 elements of pixel2 for the new location of the pixel
+				glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
+				dir = pixel;
 				origin = camera.position;
+
+				// First ray cast out
 				PayLoad hit = castRay(origin, dir, NULL);
+
+				int index = (y * width * 3) + x * 3;
 				if (hit.didHit) {
-					data[index] = hit.color.x;
-					data[index + 1] = hit.color.y;
-					data[index + 2] = hit.color.z;
+
+					// We have a hit so cast to the light source(s)
+					// vec3(0,10,0) is the location of the light
+					PayLoad hit2 = castRay(hit.point, glm::vec3(0, 10, -10) - hit.point, hit.cur);
+					// we are in shadow
+					if (hit2.didHit) {
+						data[index] = 0;
+						data[index + 1] = 0;
+						data[index + 2] = 0;
+					}
+					else {
+						data[index] = hit.color.x;
+						data[index + 1] = hit.color.y;
+						data[index + 2] = hit.color.z;
+					}
+					
 				}
+				// Did not hit so set to background color
 				else {
-					data[index] = hit.color.x;
-					data[index + 1] = hit.color.y;
-					data[index + 2] = hit.color.z;
+					data[index] = 135;
+					data[index + 1] = 206;
+					data[index + 2] = 235;
 				}
-				index += 3;
+
 			}
 		}
+		end = std::chrono::steady_clock::now();
+		//writeTop = true;
 
+		EXIT:
 
-		//camera.direction.y += .01;
-		std::cout << camera.direction << "\n";
 
 
 
@@ -625,9 +695,8 @@ int main() {
 
 
 		// get delta time and frame data
-		end = std::chrono::steady_clock::now();
 		milis = (end - begin).count() / 1000000.0;
-		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << "\n";
+		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << " and had : " << castRayCalls << " castRay calls in this frame\n";
 
 		// convert miliseconds to a delta time
 		camera.moveSpeed = camera.moveBaseSpeed * milis/1000.0;
