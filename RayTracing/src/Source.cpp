@@ -332,16 +332,17 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
 
 
-		if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
-			dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
-			dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
-			) {
-			if (t < closest.distance && t > 0.00001) {
-				//printf("here\n");
+		if (t < closest.distance && t > 0.00001) {
+			if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
+				dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
+				dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
+				) {
 				closest = { I,triangle.color,t ,&triangle,true };
 				found = true;
 			}
 		}
+
+		
 	}
 	return closest;
 
@@ -395,6 +396,45 @@ int main() {
 		{-len,-heigh-1,-len},
 		{0,0,255}
 		});
+
+	lights.push_back(
+		{ {0,5,0},128 });
+
+	//lights.push_back({ {10,10,10},128 });
+	//srand(0);
+	int max_dist = 50;
+	int max_scale = 10;
+
+	for (int i = 0; i < 10; i++) {
+		float xrad = rand() / (float)RAND_MAX * 360;
+		float yrad = rand() / (float)RAND_MAX * 360;
+		float zrad = rand() / (float)RAND_MAX * 360;
+		glm::mat4 trans_ = glm::mat4(1);
+		glm::mat4 rotx_ = glm::rotate(trans_, glm::radians(xrad), glm::vec3(1, 0, 0));
+		glm::mat4 roty_ = glm::rotate(trans_, glm::radians(yrad), glm::vec3(0, 1, 0));
+		glm::mat4 rotz_ = glm::rotate(trans_, glm::radians(zrad), glm::vec3(0, 0, 1));
+
+		glm::mat4 scale_ = glm::scale(trans_, glm::vec3(rand() % max_scale - max_scale / 2, rand() % max_scale - max_scale / 2, rand() % max_scale - max_scale / 2));
+
+		glm::mat4 translate_ = glm::translate(trans_, glm::vec3(rand() % max_dist - max_dist/2, rand() % max_dist - max_dist/2, rand() % max_dist -max_dist/2));
+
+
+		glm::vec4 p1 = glm::vec4(-1, -1, 0, 1);
+		glm::vec4 p2 = glm::vec4(0, 1, 0, 1);
+		glm::vec4 p3 = glm::vec4(1, -1, 0, 1);
+
+		glm::mat4 mod = translate_ * rotx_ * roty_ * rotz_ * scale_;
+
+		p1 = mod * p1;
+		p2 = mod * p2;
+		p3 = mod * p3;
+
+		triangles.push_back({
+			{p1}, {p2}, {p3}, { 128,128,128 } }
+		);
+	}
+
+	
 
 	// generate a lot of random triangles
 	//for (int i = 0; i < 40; i++) {
@@ -618,6 +658,11 @@ int main() {
 		// Currently, this updates every other pixel and starts at 0 or 1 
 		// So it should look better than updating the top half or bottom half
 
+		// rotate the camrea plane pixel around the camera's location
+		glm::mat4 trans = glm::mat4(1.0f);
+		trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
+		trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
+
 		// For now, we will not to test performance better
 		startY = 0;
 		for (int y = startY; y <endY; y++) {
@@ -627,11 +672,9 @@ int main() {
 				// convert camera plane pixel to into a range
 				float v = (y - height / 2) / (float)height;
 				float u = (x - width / 2) / (float)width;
-//
-				// rotate the camrea plane pixel around the camera's location
-				glm::mat4 trans = glm::mat4(1.0f);
-				trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
-				trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
+
+
+				// figure out where our pixel is based on the transform matrix
 				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera.camera_viewport_depth, 1.0);
 
 
@@ -644,29 +687,47 @@ int main() {
 				PayLoad hit = castRay(origin, dir, NULL);
 
 				int index = (y * width * 3) + x * 3;
+				// This is the output color
+				glm::vec3 color = glm::vec3(0);
+
+				// If we hit, we need to check for shadows, else, just set to background color
 				if (hit.didHit) {
 
-					// We have a hit so cast to the light source(s)
-					// vec3(0,10,0) is the location of the light
-					PayLoad hit2 = castRay(hit.point, glm::vec3(0, 10, -10) - hit.point, hit.cur);
-					// we are in shadow
-					if (hit2.didHit) {
-						data[index] = 0;
-						data[index + 1] = 0;
-						data[index + 2] = 0;
+					for (Light l : lights) {
+						PayLoad hit2 = castRay(hit.point, l.position- hit.point, hit.cur);
+						float dist = magnitude(l.position - hit.point);
+						//std::cout << dist << "\n";
+						if (hit2.didHit==false ||(hit2.didHit==true && dist < hit2.distance)) {
+							color += l.intensity/dist * hit.color;
+							//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
+							//std::cout << hit.color * l.intensity << "/n";
+						}
 					}
-					else {
-						data[index] = hit.color.x;
-						data[index + 1] = hit.color.y;
-						data[index + 2] = hit.color.z;
+					//color = glm::vec3(255, 255, 255);
+
+					if (color.x > 255) {
+						color.x = 255;
 					}
+					if (color.y > 255) {
+						color.y = 255;
+					}
+					if (color.z > 255) {
+						color.z = 255;
+					}
+
+					data[index] = color.x;
+					data[index + 1] = color.y;
+					data[index + 2] = color.z;
 					
 				}
 				// Did not hit so set to background color
 				else {
-					data[index] = 135;
-					data[index + 1] = 206;
-					data[index + 2] = 235;
+					//data[index] = 135;
+					//data[index + 1] = 206;
+					//data[index + 2] = 235;
+					data[index] = 0;
+					data[index + 1] = 0;
+					data[index + 2] = 0;
 				}
 
 			}
@@ -674,7 +735,6 @@ int main() {
 		end = std::chrono::steady_clock::now();
 		//writeTop = true;
 
-		EXIT:
 
 
 
