@@ -366,8 +366,8 @@ int main() {
 
 	triangles.push_back({ {-1,-1,-1},{0,1,1},{1,-1,-1}, {255,0,0} });
 
-	int len = 5;
-	int heigh = 1;
+	int len = 50;
+	int heigh = 10;
 	// random floor
 	triangles.push_back({
 		{-len,-heigh,-len},
@@ -402,8 +402,8 @@ int main() {
 
 	//lights.push_back({ {10,10,10},128 });
 	//srand(0);
-	int max_dist = 50;
-	int max_scale = 10;
+	int max_dist = 5;
+	int max_scale = 2;
 
 	for (int i = 0; i < 10; i++) {
 		float xrad = rand() / (float)RAND_MAX * 360;
@@ -691,6 +691,7 @@ int main() {
 				glm::vec3 color = glm::vec3(0);
 
 				// If we hit, we need to check for shadows, else, just set to background color
+				// and also send out a bunch of other rays
 				if (hit.didHit) {
 
 					for (Light l : lights) {
@@ -698,7 +699,8 @@ int main() {
 						float dist = magnitude(l.position - hit.point);
 						//std::cout << dist << "\n";
 						if (hit2.didHit==false ||(hit2.didHit==true && dist < hit2.distance)) {
-							color += l.intensity/dist * hit.color;
+							color += (l.intensity * hit.color) / (dist * dist);
+							//color += l.intensity/dist * hit.color;
 							//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
 							//std::cout << hit.color * l.intensity << "/n";
 						}
