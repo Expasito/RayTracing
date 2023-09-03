@@ -447,8 +447,8 @@ int main() {
 	
 
 	// This is the size for the number of rays to cast out. So length*width is the total.
-	int width = 800;
-	int height = 800;
+	int width = 400;
+	int height = 400;
 	// this is the size of the output(display) window
 	int win_width = 800;
 	int win_height = 800;
@@ -694,17 +694,82 @@ int main() {
 				// and also send out a bunch of other rays
 				if (hit.didHit) {
 
-					for (Light l : lights) {
-						PayLoad hit2 = castRay(hit.point, l.position- hit.point, hit.cur);
-						float dist = magnitude(l.position - hit.point);
-						//std::cout << dist << "\n";
-						if (hit2.didHit==false ||(hit2.didHit==true && dist < hit2.distance)) {
-							color += (l.intensity * hit.color) / (dist * dist);
-							//color += l.intensity/dist * hit.color;
-							//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
-							//std::cout << hit.color * l.intensity << "/n";
+					// This is the normal to the triangle
+					// So now we need to generate a bunch of rays going randomly out
+					glm::vec3 normal = hit.cur->n;
+
+					// But also, we need to make sure the normal is facing the opposite direction of the ray hitting it
+
+					if (dir.x > 0) {
+						normal.x = -abs(normal.x);
+					}
+					else {
+						normal.x = abs(normal.x);
+					}
+
+					if (dir.y > 0) {
+						normal.y = -abs(normal.y);
+					}
+					else {
+						normal.y = abs(normal.y);
+					}
+
+					if (dir.z > 0) {
+						normal.z = -abs(normal.z);
+					}
+					else {
+						normal.z = abs(normal.z);
+					}
+
+					glm::vec3 colorOut(0);
+					int maxI = 20;
+
+					int maxAngle = 20;;
+					for (int i = 0; i < maxI; i++) {
+						// We will need to generate angles upto 90 degrees off of the normal
+						float xchange = (rand() % (maxAngle*2)) - maxAngle;
+						float ychange = (rand() % (maxAngle*2)) - maxAngle;
+						float zchange = (rand() % (maxAngle*2)) - maxAngle;
+
+						glm::mat4 trans__(1);
+						glm::mat4 xrot = glm::rotate(trans__, glm::radians(xchange), glm::vec3(1, 0, 0));
+						glm::mat4 yrot = glm::rotate(trans__, glm::radians(ychange), glm::vec3(0, 1, 0));
+						glm::mat4 zrot = glm::rotate(trans__, glm::radians(zchange), glm::vec3(0, 0, 1));
+
+						trans__ = xrot * yrot * zrot;
+
+						// This is the new direction
+						glm::vec3 newNormal = glm::vec4(normal.z, normal.y, normal.z, 1) * trans__;
+
+						PayLoad hitN = castRay(hit.point, newNormal, hit.cur);
+
+						if (hitN.didHit) {
+							colorOut.x += hitN.color.x / (float)maxI;
+							colorOut.z += hitN.color.y / (float)maxI;
+							colorOut.z += hitN.color.z / (float)maxI;
+
+
 						}
 					}
+					
+					color.x = (hit.color.x + colorOut.x)/2.0;
+					color.y = (hit.color.y + colorOut.y) / 2.0;
+					color.z = (hit.color.z + colorOut.z) / 2.0;
+
+
+					
+
+					//for (Light l : lights) {
+					//	PayLoad hit2 = castRay(hit.point, l.position- hit.point, hit.cur);
+					//	float dist = magnitude(l.position - hit.point);
+					//	//std::cout << dist << "\n";
+					//	if (hit2.didHit==false ||(hit2.didHit==true && dist < hit2.distance)) {
+					//		color += (l.intensity * hit.color) / (dist * dist);
+					//		//color += l.intensity/dist * hit.color;
+					//		//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
+					//		//std::cout << hit.color * l.intensity << "/n";
+					//	}
+					//}
 					//color = glm::vec3(255, 255, 255);
 
 					if (color.x > 255) {
