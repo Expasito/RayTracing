@@ -364,10 +364,10 @@ int main() {
 
 
 
-	triangles.push_back({ {-1,-1,-1},{0,1,1},{1,-1,-1}, {255,0,0} });
+	triangles.push_back({ {-1,-1,-1},{0,1,1},{1,-1,-1}, {0,0,0} });
 
 	int len = 50;
-	int heigh = 10;
+	int heigh = 1;
 	// random floor
 	triangles.push_back({
 		{-len,-heigh,-len},
@@ -405,7 +405,7 @@ int main() {
 	int max_dist = 5;
 	int max_scale = 2;
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 0; i++) {
 		float xrad = rand() / (float)RAND_MAX * 360;
 		float yrad = rand() / (float)RAND_MAX * 360;
 		float zrad = rand() / (float)RAND_MAX * 360;
@@ -447,11 +447,11 @@ int main() {
 	
 
 	// This is the size for the number of rays to cast out. So length*width is the total.
-	int width = 400;
-	int height = 400;
+	int width = 200;
+	int height = 200;
 	// this is the size of the output(display) window
-	int win_width = 800;
-	int win_height = 800;
+	int win_width = 200;
+	int win_height = 200;
 
 
 
@@ -651,9 +651,7 @@ int main() {
 		}
 		writeTop = !writeTop;
 		
-		//if (writeTop) {
-			//goto EXIT;
-		//}
+
 		
 		// Currently, this updates every other pixel and starts at 0 or 1 
 		// So it should look better than updating the top half or bottom half
@@ -722,9 +720,10 @@ int main() {
 					}
 
 					glm::vec3 colorOut(0);
-					int maxI = 20;
+					int maxI = 10;
 
-					int maxAngle = 20;;
+					// This is the furthest angle a ray can reflect at
+					int maxAngle = 90;
 					for (int i = 0; i < maxI; i++) {
 						// We will need to generate angles upto 90 degrees off of the normal
 						float xchange = (rand() % (maxAngle*2)) - maxAngle;
@@ -739,22 +738,25 @@ int main() {
 						trans__ = xrot * yrot * zrot;
 
 						// This is the new direction
-						glm::vec3 newNormal = glm::vec4(normal.z, normal.y, normal.z, 1) * trans__;
+						glm::vec3 newNormal = glm::normalize(glm::vec4(normal.z, normal.y, normal.z, 1) * trans__);
 
 						PayLoad hitN = castRay(hit.point, newNormal, hit.cur);
 
 						if (hitN.didHit) {
-							colorOut.x += hitN.color.x / (float)maxI;
-							colorOut.z += hitN.color.y / (float)maxI;
-							colorOut.z += hitN.color.z / (float)maxI;
+							colorOut.x += hitN.color.x / hitN.distance / hitN.distance;
+							colorOut.z += hitN.color.y / hitN.distance / hitN.distance;
+							colorOut.z += hitN.color.z / hitN.distance / hitN.distance;
 
 
 						}
 					}
+					//colorOut /= maxI;
 					
-					color.x = (hit.color.x + colorOut.x)/2.0;
-					color.y = (hit.color.y + colorOut.y) / 2.0;
-					color.z = (hit.color.z + colorOut.z) / 2.0;
+					color.x = (hit.color.x + colorOut.x);
+					color.y = (hit.color.y + colorOut.y);
+					color.z = (hit.color.z + colorOut.z);
+
+					//color.x = hit.color.x + colorOut.x;
 
 
 					
