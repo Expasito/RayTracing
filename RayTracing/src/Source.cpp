@@ -64,6 +64,12 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 	return os;
 }
 
+std::ostream& operator<<(std::ostream& os, const glm::vec4& vec)
+{
+	os << vec.x << ' ' << vec.y << ' ' << vec.z << ' ' << vec.w;
+	return os;
+}
+
 
 
 
@@ -352,7 +358,45 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 #include <algorithm>
 #include <execution>
 
+void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::vec3 color) {
+	// These are our points for the base triangle
+	glm::vec4 p1 = glm::vec4(-1, -1, 0, 1);
+	glm::vec4 p2 = glm::vec4(-1, 1, 0, 1);
+	glm::vec4 p3 = glm::vec4(1, -1, 0, 1);
 
+	// create a mat4 of the vectors so we can do transforms on it
+	glm::mat4 points = glm::mat4(p1, p2, p3, glm::vec4(1, 1, 1, 1));
+
+	// transpose because the vectors need to go x,y,z,w top to bottom, not left to right
+	points = glm::transpose(points);
+
+	glm::mat4 trans(1.0f);
+
+	// These are all of our modifications. Order is translate, rotatex, rotatey, rotatez, scale
+	glm::mat4 translate = glm::translate(trans, translate_);
+	glm::mat4 rotatex = glm::rotate(trans, glm::radians(rotate.x), glm::vec3(1, 0, 0));
+	glm::mat4 rotatey = glm::rotate(trans, glm::radians(rotate.y), glm::vec3(0, 1, 0));
+	glm::mat4 rotatez = glm::rotate(trans, glm::radians(rotate.z), glm::vec3(0, 0, 1));
+	glm::mat4 scale = glm::scale(trans,scale_);
+
+
+	// apply the transformations
+	points = translate * rotatex * rotatey * rotatez * scale * points;
+
+
+	// transpose back to the order we put the values in
+	points = glm::transpose(points);
+
+	std::cout << points[0] << "\n";
+	std::cout << points[1] << "\n";
+	std::cout << points[2] << "\n";
+	std::cout << points[3] << "\n\n\n";
+
+
+	triangles.push_back({
+		{points[0]}, {points[1]}, {points[2]}, color }
+	);
+}
 
 int main() {
 	
@@ -362,40 +406,68 @@ int main() {
 	Camera camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0));
 
 
+	addTriangle({ 0,5,0 }, { 0,0,0 }, { 1,1,1 }, {255,255,255});
+	//addTriangle({5,0,0}, {0,0,180}, {10,10,10}, {128,128,128});
+
+	//addTriangle({ 4,0,0 }, { 0,90,180 }, { 10,10,10 }, { 128,128,128 });
 
 
-	triangles.push_back({ {-1,-1,-1},{0,1,1},{1,-1,-1}, {0,0,0} });
+	
+
+
+	//// Left wall
+	//triangles.push_back( {
+	//	{-1,-1,-1},{-1,1,-1},{0,-1,-1},{255,255,255}
+	//});
+
+	//triangles.push_back({
+	//	{-1,1,-1},{0,1,-1},{0,-1,-1},{255,255,255}
+	//});
+
+	//
+	//// Right wall
+	//triangles.push_back(
+	//	{ {0,-1,-1},{0,-1,1},{0,1,1},{0,200,0} }
+	//);
+
+	//triangles.push_back(
+	//	{ {0,-1,-1},{0,1,0},{0,1,1},{0,200,0} }
+	//);
+
+
+
+	//triangles.push_back({ {-1,-1,-1},{0,1,1},{1,-1,-1}, {0,0,0} });
 
 	int len = 50;
 	int heigh = 1;
 	// random floor
-	triangles.push_back({
-		{-len,-heigh,-len},
-		{-len,-heigh,len},
-		{len,-heigh,len},
-		{0,255,0}
-		});
+	//triangles.push_back({
+	//	{-len,-heigh,-len},
+	//	{-len,-heigh,len},
+	//	{len,-heigh,len},
+	//	{0,255,0}
+	//	});
 
-	triangles.push_back({
-		{len,-heigh,len},
-		{len,-heigh,-len},
-		{-len,-heigh,-len},
-		{0,0,255}
-		});
+	//triangles.push_back({
+	//	{len,-heigh,len},
+	//	{len,-heigh,-len},
+	//	{-len,-heigh,-len},
+	//	{0,0,255}
+	//	});
 
-	triangles.push_back({
-		{-len,-heigh-1,-len},
-		{-len,-heigh-1,len},
-		{len,-heigh-1,len},
-		{0,255,0}
-		});
+	//triangles.push_back({
+	//	{-len,-heigh-1,-len},
+	//	{-len,-heigh-1,len},
+	//	{len,-heigh-1,len},
+	//	{0,255,0}
+	//	});
 
-	triangles.push_back({
-		{len,-heigh-1,len},
-		{len,-heigh-1,-len},
-		{-len,-heigh-1,-len},
-		{0,0,255}
-		});
+	//triangles.push_back({
+	//	{len,-heigh-1,len},
+	//	{len,-heigh-1,-len},
+	//	{-len,-heigh-1,-len},
+	//	{0,0,255}
+	//	});
 
 	lights.push_back(
 		{ {0,5,0},128 });
@@ -635,21 +707,21 @@ int main() {
 		castRayCalls = 0;
 
 
-		//int index = 0;
+		////int index = 0;
 		int startY = 0;
-		int endY = height/2;
+		int endY = height;
 
-		if (writeTop == true) {
-			startY = 0;
-			endY = height;
-			//index = 0;
-		}
-		else {
-			startY = 1;
-			endY = height;
-			//index = height / 2 * 3;
-		}
-		writeTop = !writeTop;
+		//if (writeTop == true) {
+		//	startY = 0;
+		//	endY = height;
+		//	//index = 0;
+		//}
+		//else {
+		//	startY = 1;
+		//	endY = height;
+		//	//index = height / 2 * 3;
+		//}
+		//writeTop = !writeTop;
 		
 
 		
