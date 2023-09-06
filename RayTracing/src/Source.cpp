@@ -89,9 +89,10 @@ public:
 
 	// up is y
 	glm::vec3 worldUp = { 0,1,0 };
-	float moveBaseSpeed = 10.0;
+	float moveBaseSpeed = 15.0;
 	float moveSpeed=moveBaseSpeed;
-	float rotBaseSpeed = 40.0;
+	// make it so the basespeed and rotspaeed are related
+	float rotBaseSpeed = moveBaseSpeed*3.14159265;
 	float rotSpeed=rotBaseSpeed;
 
 	// camera view plane sizes. Sort of determines the distance between each pixel
@@ -364,11 +365,6 @@ void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::
 	glm::vec4 p2 = glm::vec4(-1, 1, 0, 1);
 	glm::vec4 p3 = glm::vec4(1, -1, 0, 1);
 
-	// create a mat4 of the vectors so we can do transforms on it
-	glm::mat4 points = glm::mat4(p1, p2, p3, glm::vec4(1, 1, 1, 1));
-
-	// transpose because the vectors need to go x,y,z,w top to bottom, not left to right
-	points = glm::transpose(points);
 
 	glm::mat4 trans(1.0f);
 
@@ -380,21 +376,17 @@ void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::
 	glm::mat4 scale = glm::scale(trans,scale_);
 
 
-	// apply the transformations
-	points = translate * rotatex * rotatey * rotatez * scale * points;
+	glm::mat4 mod = translate * rotatex * rotatey * rotatez * scale;
 
 
-	// transpose back to the order we put the values in
-	points = glm::transpose(points);
+	p1 = mod * p1;
+	p2 = mod * p2;
+	p3 = mod * p3;
 
-	std::cout << points[0] << "\n";
-	std::cout << points[1] << "\n";
-	std::cout << points[2] << "\n";
-	std::cout << points[3] << "\n\n\n";
 
 
 	triangles.push_back({
-		{points[0]}, {points[1]}, {points[2]}, color }
+		{p1}, {p2}, {p3}, color }
 	);
 }
 
@@ -406,10 +398,16 @@ int main() {
 	Camera camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0));
 
 
-	addTriangle({ 0,5,0 }, { 0,0,0 }, { 1,1,1 }, {255,255,255});
-	//addTriangle({5,0,0}, {0,0,180}, {10,10,10}, {128,128,128});
+	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0});
+	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0});
 
-	//addTriangle({ 4,0,0 }, { 0,90,180 }, { 10,10,10 }, { 128,128,128 });
+	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 });
+	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 });
+
+	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 });
+	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 });
+
+
 
 
 	
@@ -519,11 +517,11 @@ int main() {
 	
 
 	// This is the size for the number of rays to cast out. So length*width is the total.
-	int width = 200;
-	int height = 200;
+	int width = 800;
+	int height = 800;
 	// this is the size of the output(display) window
-	int win_width = 200;
-	int win_height = 200;
+	int win_width = 800;
+	int win_height = 800;
 
 
 
@@ -676,6 +674,7 @@ int main() {
 	// For performance, we will update either the top or bottom per frame
 	bool writeTop = false;
 
+
 	// now for the run loop
 	while (!glfwWindowShouldClose(window)) {
 
@@ -792,7 +791,7 @@ int main() {
 					}
 
 					glm::vec3 colorOut(0);
-					int maxI = 10;
+					int maxI = 0;
 
 					// This is the furthest angle a ray can reflect at
 					int maxAngle = 90;
@@ -899,9 +898,11 @@ int main() {
 		milis = (end - begin).count() / 1000000.0;
 		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << " and had : " << castRayCalls << " castRay calls in this frame\n";
 
+
+
 		// convert miliseconds to a delta time
-		camera.moveSpeed = camera.moveBaseSpeed * milis/1000.0;
-		camera.rotSpeed = camera.rotBaseSpeed * milis/1000.0;
+		camera.moveSpeed = camera.moveBaseSpeed/milis;
+		camera.rotSpeed = camera.rotBaseSpeed/milis;
 	}
 
 	glfwTerminate();
