@@ -395,17 +395,27 @@ int main() {
 
 
 	// make camera a public variable
-	Camera camera(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0));
+	Camera camera(glm::vec3(-20, 5, -20), glm::vec3(45, 0, 45));
 
 
 	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0});
 	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0});
 
+
 	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 });
 	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 });
 
+
 	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 });
 	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 });
+
+
+	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 });
+	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 });
+
+
+	addTriangle({ 0,0,0 }, { 90,0,0 }, { 1,1,1 }, { 0,255,255 });
+	addTriangle({ 0,0,0 }, { 90,0,180 }, { 1,1,1 }, { 0,255,255 });
 
 
 
@@ -467,8 +477,11 @@ int main() {
 	//	{0,0,255}
 	//	});
 
-	lights.push_back(
-		{ {0,5,0},128 });
+	lights.push_back({ {0,8,0},32 });
+	lights.push_back({ {9.99,9.99,9.99},128 });
+
+
+
 
 	//lights.push_back({ {10,10,10},128 });
 	//srand(0);
@@ -823,26 +836,48 @@ int main() {
 					}
 					//colorOut /= maxI;
 					
-					color.x = (hit.color.x + colorOut.x);
-					color.y = (hit.color.y + colorOut.y);
-					color.z = (hit.color.z + colorOut.z);
+					//color.x = (hit.color.x + colorOut.x);
+					//color.y = (hit.color.y + colorOut.y);
+					//color.z = (hit.color.z + colorOut.z);
 
 					//color.x = hit.color.x + colorOut.x;
 
-
+					color = { 0,0,0 };
 					
 
-					//for (Light l : lights) {
-					//	PayLoad hit2 = castRay(hit.point, l.position- hit.point, hit.cur);
-					//	float dist = magnitude(l.position - hit.point);
-					//	//std::cout << dist << "\n";
-					//	if (hit2.didHit==false ||(hit2.didHit==true && dist < hit2.distance)) {
-					//		color += (l.intensity * hit.color) / (dist * dist);
-					//		//color += l.intensity/dist * hit.color;
-					//		//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
-					//		//std::cout << hit.color * l.intensity << "/n";
-					//	}
-					//}
+					for (Light l : lights) {
+						PayLoad hit2 = castRay(hit.point, normalize(l.position- hit.point), hit.cur);
+						// this is the distance from the light to the point we hit in castRay
+						float dist = magnitude(l.position - hit.point);
+						//std::cout << dist << "\n";
+						
+						//if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
+						//	color += glm::vec3(1000/dist);
+						//	//color += l.intensity/dist * hit.color;
+						//	//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
+						//	//std::cout << hit.color * l.intensity << "/n";
+						//}
+
+						//if (hit2.didHit == false) {
+						//	color += glm::vec3(100);
+						//}
+						// ||(hit2.didHit==true && dist < hit2.distance)
+						if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
+							color += (l.intensity * hit.color) / (dist * dist);
+							//color += l.intensity/dist * hit.color;
+							//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
+							//std::cout << hit.color * l.intensity << "/n";
+						}
+						//else {
+						//	std::cout << "Dist: " << dist << "  hit2dist: " << hit2.distance << "\n";
+						//	//std::cout << dist << "\n";
+						//	//color += glm::vec3(0, 0, 255);
+						//}
+
+						//color += glm::vec3(1000/dist);
+						//color += glm::vec3(1000 / hit2.distance);
+						//std::cout << hit2.distance << "\n";
+					}
 					//color = glm::vec3(255, 255, 255);
 
 					if (color.x > 255) {
