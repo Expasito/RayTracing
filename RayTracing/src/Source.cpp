@@ -331,32 +331,87 @@ void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::
 	);
 }
 
+
+// this returns a normal facing the correct direction
+glm::vec3 newNormal(glm::vec3 dir, glm::vec3 normal) {
+	if (dir.x > 0) {
+		normal.x = -abs(normal.x);
+	}
+	else {
+		normal.x = abs(normal.x);
+	}
+
+	if (dir.y > 0) {
+		normal.y = -abs(normal.y);
+	}
+	else {
+		normal.y = abs(normal.y);
+	}
+
+	if (dir.z > 0) {
+		normal.z = -abs(normal.z);
+	}
+	else {
+		normal.z = abs(normal.z);
+	}
+
+	normal = glm::normalize(normal);
+	return normal;
+}
+
+
+glm::vec3 processLighting(PayLoad hit) {
+	glm::vec3 color(0);
+	for (Light l : lights) {
+		PayLoad hit2 = castRay(hit.point, normalize(l.position - hit.point), hit.cur);
+		// this is the distance from the light to the point we hit in castRay
+		float dist = magnitude(l.position - hit.point);
+
+		// and now we check if we hit the light first
+		if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
+			color += (l.intensity * hit.color) / (dist * dist);
+		}
+	}
+	return color;
+}
+
 int main() {
 	
 
 
 	// make camera a public variable
-	Camera camera(glm::vec3(-20, 5, -20), glm::vec3(45, 0, 45));
+	Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
 
 
 	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 0);
 	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 0);
 
 
-	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 0);
-	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 0);
+	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 }, 0);
+	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 }, 0);
+
+
+	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 1);
+	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 1);
+
+	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 }, 0);
+	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 }, 0);
 
 
 	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
 	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
 
 
-	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 1);
-	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 1);
+	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 0);
+	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 0);
 
 
-	addTriangle({ 0,0,0 }, { 90,0,0 }, { 1,1,1 }, { 0,255,255 }, 1);
-	addTriangle({ 0,0,0 }, { 90,0,180 }, { 1,1,1 }, { 0,255,255 }, 1);
+	//addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, 1);
+	//addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, 1);
+
+
+	addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, 0);
+	addTriangle({ 4,4,0 }, { 90,0,180 }, { .5,.5,.5 }, { 0,255,255 }, 0);
 
 
 	addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, 0);
@@ -364,8 +419,8 @@ int main() {
 
 
 
-	addTriangle({ 0,0,-40 }, { 0,0,0 }, { 20,20,20 }, { 255,255,255 }, 1);
-	addTriangle({ 0,0,-40 }, { 0,0,180 }, { 20,20,20 }, { 255,255,255 }, 1);
+	//addTriangle({ 0,0,-40 }, { 0,0,0 }, { 20,20,20 }, { 255,255,255 }, 1);
+	//addTriangle({ 0,0,-40 }, { 0,0,180 }, { 20,20,20 }, { 255,255,255 }, 1);
 
 
 
@@ -639,107 +694,52 @@ int main() {
 				// and also send out a bunch of other rays
 				if (hit.didHit) {
 
-					color = glm::vec3(hit.cur->shininess*255);
+					//color = glm::vec3(hit.cur->shininess*255);
 
-					// This is the normal to the triangle
-					// So now we need to generate a bunch of rays going randomly out
-					glm::vec3 normal = hit.cur->n;
 
-					// But also, we need to make sure the normal is facing the opposite direction of the ray hitting it
 
-					if (dir.x > 0) {
-						normal.x = -abs(normal.x);
-					}
-					else {
-						normal.x = abs(normal.x);
-					}
 
-					if (dir.y > 0) {
-						normal.y = -abs(normal.y);
-					}
-					else {
-						normal.y = abs(normal.y);
-					}
-
-					if (dir.z > 0) {
-						normal.z = -abs(normal.z);
-					}
-					else {
-						normal.z = abs(normal.z);
-					}
-
-					normal = glm::normalize(normal);
+					// get the normal facing the correct direction relative to the viewer
+					glm::vec3 normal = newNormal(dir, hit.cur->n);
+					
 
 					// so now our new normal is normal:
 
 					// shiny object so reflect
 					if (hit.cur->shininess > .5) {
-						glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
-						//std::cout << "New Dir: " << newDir << " normal: " << normal << "\n";
 
+						glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
 						PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
+						// keep iterating with new rays until a solid object
+						while (hitN1.didHit && hitN1.cur->shininess > .5) {
+							normal = newNormal(dir, hitN1.cur->n);
+							newDir = glm::normalize(glm::reflect(dir, normal));
+							hitN1 =  castRay(hitN1.point, newDir, hit.cur);
+						}
 
 						if (hitN1.didHit) {
-							color = glm::vec3(hitN1.color.x*.8,hitN1.color.y*.8, hitN1.color.z*.8);
+							color = processLighting(hitN1);
+							// dim by .8 to represent light loss
+							color = glm::vec3(color.x * .8, color.y * .8, color.z * .8);
+							//color = glm::vec3(hitN1.color.x * .8, hitN1.color.y * .8, hitN1.color.z * .8);
 						}
 						else {
+							//std::cout << "Failed\n";
+							//exit(1);
 							color = glm::vec3(0, 0, 0);
 						}
+
+						
+
+
+						
 					}
 					else {
-						color = glm::vec3(hit.cur->color);
+						// set to opaque color
+						color = processLighting(hit);
 					}
 
-					
 
-					//glm::vec3 colorOut(0);
-					//int maxI = 0;
-
-					//// This is the furthest angle a ray can reflect at
-					//int maxAngle = 90;
-					//for (int i = 0; i < maxI; i++) {
-					//	// We will need to generate angles upto 90 degrees off of the normal
-					//	float xchange = (rand() % (maxAngle*2)) - maxAngle;
-					//	float ychange = (rand() % (maxAngle*2)) - maxAngle;
-					//	float zchange = (rand() % (maxAngle*2)) - maxAngle;
-
-					//	glm::mat4 trans__(1);
-					//	glm::mat4 xrot = glm::rotate(trans__, glm::radians(xchange), glm::vec3(1, 0, 0));
-					//	glm::mat4 yrot = glm::rotate(trans__, glm::radians(ychange), glm::vec3(0, 1, 0));
-					//	glm::mat4 zrot = glm::rotate(trans__, glm::radians(zchange), glm::vec3(0, 0, 1));
-
-					//	trans__ = xrot * yrot * zrot;
-
-					//	// This is the new direction
-					//	glm::vec3 newNormal = glm::normalize(glm::vec4(normal.z, normal.y, normal.z, 1) * trans__);
-
-					//	PayLoad hitN = castRay(hit.point, newNormal, hit.cur);
-
-					//	if (hitN.didHit) {
-					//		colorOut.x += hitN.color.x / hitN.distance / hitN.distance;
-					//		colorOut.z += hitN.color.y / hitN.distance / hitN.distance;
-					//		colorOut.z += hitN.color.z / hitN.distance / hitN.distance;
-
-
-					//	}
-					//}
-
-					//color = { 0,0,0 };
-					
-
-					// PLEASE KEEP THIS CODE
-					//// get lighting calculations herer
-					//for (Light l : lights) {
-					//	PayLoad hit2 = castRay(hit.point, normalize(l.position- hit.point), hit.cur);
-					//	// this is the distance from the light to the point we hit in castRay
-					//	float dist = magnitude(l.position - hit.point);
-
-					//	// and now we check if we hit the light first
-					//	if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
-					//		color += (l.intensity * hit.color) / (dist * dist);
-					//	}
-					//}
-					//color = glm::vec3(255, 255, 255);
 
 					if (color.x > 255) {
 						color.x = 255;
@@ -769,7 +769,7 @@ int main() {
 			}
 		}
 		end = std::chrono::steady_clock::now();
-		//writeTop = true;
+
 
 
 
