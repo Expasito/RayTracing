@@ -33,7 +33,9 @@ struct Triangle {
 	glm::vec3 edge0, edge1, edge2;
 	glm::vec3 color;
 
-	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_, glm::vec3 color_) {
+	float shininess;
+
+	Triangle(glm::vec3 p1_, glm::vec3 p2_, glm::vec3 p3_, glm::vec3 color_, float shininess_) {
 		p1 = p1_; p2 = p2_; p3 = p3_;
 		// default to p1 here
 		p = p1;
@@ -45,6 +47,8 @@ struct Triangle {
 		edge2 = p1 - p3;
 
 		color = color_;
+
+		shininess = shininess_;
 	}
 
 };
@@ -92,7 +96,7 @@ public:
 	float moveBaseSpeed = 15.0;
 	float moveSpeed=moveBaseSpeed;
 	// make it so the basespeed and rotspaeed are related
-	float rotBaseSpeed = moveBaseSpeed*3.14159265;
+	float rotBaseSpeed = moveBaseSpeed*3.14159265*2;
 	float rotSpeed=rotBaseSpeed;
 
 	// camera view plane sizes. Sort of determines the distance between each pixel
@@ -219,6 +223,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 //move left, right,...
 bool left = false, right = false, up = false, down = false, forward = false, backward = false;
+
+
 //look left, right,...
 bool lleft = false, lright = false, lup = false, ldown = false;
 void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -241,71 +247,6 @@ void keycallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 
-//void castRay(unsigned char* data, int i, int j, int width, int height, Camera* camera, std::vector<Triangle>* triangles) {
-//	// reference for closest triangle
-//	Triangle out_tri;
-//	Object::hit out_hit;
-//	double mint = 1000000000;
-//	bool found = false;
-//	
-//
-//	// convert camera plane pixel to into a range
-//	float u = (j) / (float)height * camera->camera_viewport_width;
-//	float v = (i) / (float)width * camera->camera_viewport_height;
-//
-//	// rotate the camrea plane pixel around the camera's location
-//	glm::mat4 trans = glm::mat4(1.0f);
-//	trans = glm::rotate(trans, glm::radians((float)camera->rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
-//	trans = glm::rotate(trans, glm::radians(-(float)camera->rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
-//	glm::vec4 pixel2 = trans * glm::vec4(u, v, camera->camera_viewport_depth, 1.0);
-//
-//	// now get the first 3 elements of pixel2 for the new location of the pixel
-//	glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
-//
-//	// define t out here so we can use it outside of the for loop scope
-//	double t;
-//	Triangle tri;
-//	Object::hit hit;
-//
-//	for (int k = 0; k < triangles->size(); k++) {
-//		tri = (*triangles)[k];
-//
-//		// get the distance for this triangle
-//		hit = tri.getDist(camera->position, pixel);
-//
-//		// update the closes triangle here
-//		if (hit.t > camera->camera_viewport_depth && hit.t < mint) {
-//			out_tri = tri;
-//			out_hit = hit;
-//			mint = hit.t;
-//			found = true;
-//
-//		}
-//
-//	}
-//
-//
-//	// this is where in the array to set the colors
-//	int index = (i + height / 2) * width * 3 + (j + width / 2) * 3;
-//
-//	if (found) {
-//		Object::payload payLoad = out_tri.getPayload(hit.position);
-//		data[index] = payLoad.color.x;
-//		data[index + 1] = payLoad.color.y;
-//		data[index + 2] = payLoad.color.z;
-//
-//
-//	}
-//	else {
-//		// set background color
-//		data[index] = 0;
-//		data[index + 1] = 0;
-//		data[index + 2] = 0;
-//
-//
-//
-//	}
-//}
 
 
 struct PayLoad {
@@ -359,7 +300,7 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 #include <algorithm>
 #include <execution>
 
-void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::vec3 color) {
+void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::vec3 color, float shininess_) {
 	// These are our points for the base triangle
 	glm::vec4 p1 = glm::vec4(-1, -1, 0, 1);
 	glm::vec4 p2 = glm::vec4(-1, 1, 0, 1);
@@ -386,7 +327,7 @@ void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::
 
 
 	triangles.push_back({
-		{p1}, {p2}, {p3}, color }
+		{p1}, {p2}, {p3}, color, shininess_ }
 	);
 }
 
@@ -398,124 +339,44 @@ int main() {
 	Camera camera(glm::vec3(-20, 5, -20), glm::vec3(45, 0, 45));
 
 
-	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0});
-	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0});
+	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 0);
+	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 0);
 
 
-	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 });
-	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 });
+	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 0);
+	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 0);
 
 
-	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 });
-	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 });
+	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
+	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
 
 
-	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 });
-	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 });
+	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 1);
+	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 1);
 
 
-	addTriangle({ 0,0,0 }, { 90,0,0 }, { 1,1,1 }, { 0,255,255 });
-	addTriangle({ 0,0,0 }, { 90,0,180 }, { 1,1,1 }, { 0,255,255 });
+	addTriangle({ 0,0,0 }, { 90,0,0 }, { 1,1,1 }, { 0,255,255 }, 1);
+	addTriangle({ 0,0,0 }, { 90,0,180 }, { 1,1,1 }, { 0,255,255 }, 1);
+
+
+	addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, 0);
+	addTriangle({ 5,0,0 }, { 90,90,180 }, { 1,1,1 }, { 255,255,0 }, 0);
+
+
+
+	addTriangle({ 0,0,-40 }, { 0,0,0 }, { 20,20,20 }, { 255,255,255 }, 1);
+	addTriangle({ 0,0,-40 }, { 0,0,180 }, { 20,20,20 }, { 255,255,255 }, 1);
 
 
 
 
 	
-
-
-	//// Left wall
-	//triangles.push_back( {
-	//	{-1,-1,-1},{-1,1,-1},{0,-1,-1},{255,255,255}
-	//});
-
-	//triangles.push_back({
-	//	{-1,1,-1},{0,1,-1},{0,-1,-1},{255,255,255}
-	//});
-
-	//
-	//// Right wall
-	//triangles.push_back(
-	//	{ {0,-1,-1},{0,-1,1},{0,1,1},{0,200,0} }
-	//);
-
-	//triangles.push_back(
-	//	{ {0,-1,-1},{0,1,0},{0,1,1},{0,200,0} }
-	//);
-
-
-
-	//triangles.push_back({ {-1,-1,-1},{0,1,1},{1,-1,-1}, {0,0,0} });
-
-	int len = 50;
-	int heigh = 1;
-	// random floor
-	//triangles.push_back({
-	//	{-len,-heigh,-len},
-	//	{-len,-heigh,len},
-	//	{len,-heigh,len},
-	//	{0,255,0}
-	//	});
-
-	//triangles.push_back({
-	//	{len,-heigh,len},
-	//	{len,-heigh,-len},
-	//	{-len,-heigh,-len},
-	//	{0,0,255}
-	//	});
-
-	//triangles.push_back({
-	//	{-len,-heigh-1,-len},
-	//	{-len,-heigh-1,len},
-	//	{len,-heigh-1,len},
-	//	{0,255,0}
-	//	});
-
-	//triangles.push_back({
-	//	{len,-heigh-1,len},
-	//	{len,-heigh-1,-len},
-	//	{-len,-heigh-1,-len},
-	//	{0,0,255}
-	//	});
-
 	lights.push_back({ {0,8,0},32 });
 	lights.push_back({ {9.99,9.99,9.99},128 });
 
 
 
 
-	//lights.push_back({ {10,10,10},128 });
-	//srand(0);
-	int max_dist = 5;
-	int max_scale = 2;
-
-	for (int i = 0; i < 0; i++) {
-		float xrad = rand() / (float)RAND_MAX * 360;
-		float yrad = rand() / (float)RAND_MAX * 360;
-		float zrad = rand() / (float)RAND_MAX * 360;
-		glm::mat4 trans_ = glm::mat4(1);
-		glm::mat4 rotx_ = glm::rotate(trans_, glm::radians(xrad), glm::vec3(1, 0, 0));
-		glm::mat4 roty_ = glm::rotate(trans_, glm::radians(yrad), glm::vec3(0, 1, 0));
-		glm::mat4 rotz_ = glm::rotate(trans_, glm::radians(zrad), glm::vec3(0, 0, 1));
-
-		glm::mat4 scale_ = glm::scale(trans_, glm::vec3(rand() % max_scale - max_scale / 2, rand() % max_scale - max_scale / 2, rand() % max_scale - max_scale / 2));
-
-		glm::mat4 translate_ = glm::translate(trans_, glm::vec3(rand() % max_dist - max_dist/2, rand() % max_dist - max_dist/2, rand() % max_dist -max_dist/2));
-
-
-		glm::vec4 p1 = glm::vec4(-1, -1, 0, 1);
-		glm::vec4 p2 = glm::vec4(0, 1, 0, 1);
-		glm::vec4 p3 = glm::vec4(1, -1, 0, 1);
-
-		glm::mat4 mod = translate_ * rotx_ * roty_ * rotz_ * scale_;
-
-		p1 = mod * p1;
-		p2 = mod * p2;
-		p3 = mod * p3;
-
-		triangles.push_back({
-			{p1}, {p2}, {p3}, { 128,128,128 } }
-		);
-	}
 
 	
 
@@ -715,6 +576,8 @@ int main() {
 		//	}
 		//);
 
+
+
 		// reset counter
 		castRayCalls = 0;
 
@@ -776,6 +639,8 @@ int main() {
 				// and also send out a bunch of other rays
 				if (hit.didHit) {
 
+					color = glm::vec3(hit.cur->shininess*255);
+
 					// This is the normal to the triangle
 					// So now we need to generate a bunch of rays going randomly out
 					glm::vec3 normal = hit.cur->n;
@@ -803,81 +668,77 @@ int main() {
 						normal.z = abs(normal.z);
 					}
 
-					glm::vec3 colorOut(0);
-					int maxI = 0;
+					normal = glm::normalize(normal);
 
-					// This is the furthest angle a ray can reflect at
-					int maxAngle = 90;
-					for (int i = 0; i < maxI; i++) {
-						// We will need to generate angles upto 90 degrees off of the normal
-						float xchange = (rand() % (maxAngle*2)) - maxAngle;
-						float ychange = (rand() % (maxAngle*2)) - maxAngle;
-						float zchange = (rand() % (maxAngle*2)) - maxAngle;
+					// so now our new normal is normal:
 
-						glm::mat4 trans__(1);
-						glm::mat4 xrot = glm::rotate(trans__, glm::radians(xchange), glm::vec3(1, 0, 0));
-						glm::mat4 yrot = glm::rotate(trans__, glm::radians(ychange), glm::vec3(0, 1, 0));
-						glm::mat4 zrot = glm::rotate(trans__, glm::radians(zchange), glm::vec3(0, 0, 1));
+					// shiny object so reflect
+					if (hit.cur->shininess > .5) {
+						glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
+						//std::cout << "New Dir: " << newDir << " normal: " << normal << "\n";
 
-						trans__ = xrot * yrot * zrot;
+						PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
 
-						// This is the new direction
-						glm::vec3 newNormal = glm::normalize(glm::vec4(normal.z, normal.y, normal.z, 1) * trans__);
-
-						PayLoad hitN = castRay(hit.point, newNormal, hit.cur);
-
-						if (hitN.didHit) {
-							colorOut.x += hitN.color.x / hitN.distance / hitN.distance;
-							colorOut.z += hitN.color.y / hitN.distance / hitN.distance;
-							colorOut.z += hitN.color.z / hitN.distance / hitN.distance;
-
-
+						if (hitN1.didHit) {
+							color = glm::vec3(hitN1.color.x*.8,hitN1.color.y*.8, hitN1.color.z*.8);
+						}
+						else {
+							color = glm::vec3(0, 0, 0);
 						}
 					}
-					//colorOut /= maxI;
-					
-					//color.x = (hit.color.x + colorOut.x);
-					//color.y = (hit.color.y + colorOut.y);
-					//color.z = (hit.color.z + colorOut.z);
-
-					//color.x = hit.color.x + colorOut.x;
-
-					color = { 0,0,0 };
-					
-
-					for (Light l : lights) {
-						PayLoad hit2 = castRay(hit.point, normalize(l.position- hit.point), hit.cur);
-						// this is the distance from the light to the point we hit in castRay
-						float dist = magnitude(l.position - hit.point);
-						//std::cout << dist << "\n";
-						
-						//if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
-						//	color += glm::vec3(1000/dist);
-						//	//color += l.intensity/dist * hit.color;
-						//	//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
-						//	//std::cout << hit.color * l.intensity << "/n";
-						//}
-
-						//if (hit2.didHit == false) {
-						//	color += glm::vec3(100);
-						//}
-						// ||(hit2.didHit==true && dist < hit2.distance)
-						if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
-							color += (l.intensity * hit.color) / (dist * dist);
-							//color += l.intensity/dist * hit.color;
-							//color += glm::vec3(.2 * 255, .2 * 255, .2*255);
-							//std::cout << hit.color * l.intensity << "/n";
-						}
-						//else {
-						//	std::cout << "Dist: " << dist << "  hit2dist: " << hit2.distance << "\n";
-						//	//std::cout << dist << "\n";
-						//	//color += glm::vec3(0, 0, 255);
-						//}
-
-						//color += glm::vec3(1000/dist);
-						//color += glm::vec3(1000 / hit2.distance);
-						//std::cout << hit2.distance << "\n";
+					else {
+						color = glm::vec3(hit.cur->color);
 					}
+
+					
+
+					//glm::vec3 colorOut(0);
+					//int maxI = 0;
+
+					//// This is the furthest angle a ray can reflect at
+					//int maxAngle = 90;
+					//for (int i = 0; i < maxI; i++) {
+					//	// We will need to generate angles upto 90 degrees off of the normal
+					//	float xchange = (rand() % (maxAngle*2)) - maxAngle;
+					//	float ychange = (rand() % (maxAngle*2)) - maxAngle;
+					//	float zchange = (rand() % (maxAngle*2)) - maxAngle;
+
+					//	glm::mat4 trans__(1);
+					//	glm::mat4 xrot = glm::rotate(trans__, glm::radians(xchange), glm::vec3(1, 0, 0));
+					//	glm::mat4 yrot = glm::rotate(trans__, glm::radians(ychange), glm::vec3(0, 1, 0));
+					//	glm::mat4 zrot = glm::rotate(trans__, glm::radians(zchange), glm::vec3(0, 0, 1));
+
+					//	trans__ = xrot * yrot * zrot;
+
+					//	// This is the new direction
+					//	glm::vec3 newNormal = glm::normalize(glm::vec4(normal.z, normal.y, normal.z, 1) * trans__);
+
+					//	PayLoad hitN = castRay(hit.point, newNormal, hit.cur);
+
+					//	if (hitN.didHit) {
+					//		colorOut.x += hitN.color.x / hitN.distance / hitN.distance;
+					//		colorOut.z += hitN.color.y / hitN.distance / hitN.distance;
+					//		colorOut.z += hitN.color.z / hitN.distance / hitN.distance;
+
+
+					//	}
+					//}
+
+					//color = { 0,0,0 };
+					
+
+					// PLEASE KEEP THIS CODE
+					//// get lighting calculations herer
+					//for (Light l : lights) {
+					//	PayLoad hit2 = castRay(hit.point, normalize(l.position- hit.point), hit.cur);
+					//	// this is the distance from the light to the point we hit in castRay
+					//	float dist = magnitude(l.position - hit.point);
+
+					//	// and now we check if we hit the light first
+					//	if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
+					//		color += (l.intensity * hit.color) / (dist * dist);
+					//	}
+					//}
 					//color = glm::vec3(255, 255, 255);
 
 					if (color.x > 255) {
