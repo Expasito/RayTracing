@@ -382,32 +382,27 @@ int main() {
 	// make camera a public variable
 	Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
 
+	// wall along z axis
+	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 1);
+	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 1);
+	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    1);
+	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    1);
 
-	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 0);
-	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 0);
-
-
-	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 }, 0);
-	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 }, 0);
-
-
+	// wall along x axis
 	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 1);
 	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 1);
+	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     1);
+	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     1);
 
-	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 }, 0);
-	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 }, 0);
-
-
+	// wall along y axis
 	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
 	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
-
-
 	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 0);
 	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 0);
 
 
-	//addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, 1);
-	//addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, 1);
+	addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, 0);
+	addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, 0);
 
 
 	addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, 0);
@@ -426,8 +421,8 @@ int main() {
 
 
 	
-	lights.push_back({ {0,8,0},32 });
-	lights.push_back({ {9.99,9.99,9.99},128 });
+	lights.push_back({ {0,8,0},64 });
+	//lights.push_back({ {9.99,9.99,9.99},128 });
 
 
 
@@ -446,8 +441,8 @@ int main() {
 	
 
 	// This is the size for the number of rays to cast out. So length*width is the total.
-	int width = 800;
-	int height = 800;
+	int width = 400;
+	int height = 400;
 	// this is the size of the output(display) window
 	int win_width = 800;
 	int win_height = 800;
@@ -637,35 +632,12 @@ int main() {
 		castRayCalls = 0;
 
 
-		////int index = 0;
-		int startY = 0;
-		int endY = height;
-
-		//if (writeTop == true) {
-		//	startY = 0;
-		//	endY = height;
-		//	//index = 0;
-		//}
-		//else {
-		//	startY = 1;
-		//	endY = height;
-		//	//index = height / 2 * 3;
-		//}
-		//writeTop = !writeTop;
-		
-
-		
-		// Currently, this updates every other pixel and starts at 0 or 1 
-		// So it should look better than updating the top half or bottom half
-
 		// rotate the camrea plane pixel around the camera's location
 		glm::mat4 trans = glm::mat4(1.0f);
 		trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
 		trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
 
-		// For now, we will not to test performance better
-		startY = 0;
-		for (int y = startY; y <endY; y++) {
+		for (int y = 0; y <height; y++) {
 			for (int x = 0; x < width; x++) {
 				glm::vec3 dir, origin;
 
@@ -694,10 +666,6 @@ int main() {
 				// and also send out a bunch of other rays
 				if (hit.didHit) {
 
-					//color = glm::vec3(hit.cur->shininess*255);
-
-
-
 
 					// get the normal facing the correct direction relative to the viewer
 					glm::vec3 normal = newNormal(dir, hit.cur->n);
@@ -705,32 +673,33 @@ int main() {
 
 					// so now our new normal is normal:
 
+					// define the max bounces before we stop
+					int maxBounces = 15;
+
 					// shiny object so reflect
 					if (hit.cur->shininess > .5) {
-
+						int bounces = 0;
 						glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
 						PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
 						// keep iterating with new rays until a solid object
-						while (hitN1.didHit && hitN1.cur->shininess > .5) {
-							normal = newNormal(dir, hitN1.cur->n);
-							newDir = glm::normalize(glm::reflect(dir, normal));
-							hitN1 =  castRay(hitN1.point, newDir, hit.cur);
+						while (hitN1.didHit && hitN1.cur->shininess > .5 && bounces < maxBounces) {
+							normal = newNormal(newDir, hitN1.cur->n);
+							newDir = glm::normalize(glm::reflect(newDir, normal));
+							hitN1 =  castRay(hitN1.point, newDir, hitN1.cur);
+							bounces++;
 						}
 
-						if (hitN1.didHit) {
+						if (hitN1.didHit && bounces < maxBounces) {
 							color = processLighting(hitN1);
 							// dim by .8 to represent light loss
-							color = glm::vec3(color.x * .8, color.y * .8, color.z * .8);
-							//color = glm::vec3(hitN1.color.x * .8, hitN1.color.y * .8, hitN1.color.z * .8);
+							float dim = .99;
+							color = glm::vec3(color.x * dim, color.y * dim, color.z * dim);
 						}
 						else {
 							//std::cout << "Failed\n";
 							//exit(1);
-							color = glm::vec3(0, 0, 0);
+							color = glm::vec3(0,0,0);
 						}
-
-						
-
 
 						
 					}
