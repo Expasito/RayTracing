@@ -375,6 +375,110 @@ glm::vec3 processLighting(PayLoad hit) {
 	return color;
 }
 
+
+void getPixelData(int x, int y, int width, int height, unsigned char* data, glm::mat4 trans, Camera* camera) {
+	glm::vec3 dir, origin;
+
+	// convert camera plane pixel to into a range
+	float v = (y - height / 2) / (float)height;
+	float u = (x - width / 2) / (float)width;
+
+
+	// figure out where our pixel is based on the transform matrix
+	glm::vec4 pixel2 = trans * glm::vec4(u, v, camera->camera_viewport_depth, 1.0);
+
+
+	// now get the first 3 elements of pixel2 for the new location of the pixel
+	glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
+	dir = pixel;
+	origin = camera->position;
+
+	// First ray cast out
+	PayLoad hit = castRay(origin, dir, NULL);
+
+	int index = (y * width * 3) + x * 3;
+	// This is the output color
+	glm::vec3 color = glm::vec3(0);
+
+	// If we hit, we need to check for shadows, else, just set to background color
+	// and also send out a bunch of other rays
+	if (hit.didHit) {
+
+
+		// get the normal facing the correct direction relative to the viewer
+		glm::vec3 normal = newNormal(dir, hit.cur->n);
+
+
+		// so now our new normal is normal:
+
+		// define the max bounces before we stop
+		int maxBounces = 3;
+
+		// shiny object so reflect
+		if (hit.cur->shininess > .5) {
+			int bounces = 0;
+			glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
+			PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
+			// keep iterating with new rays until a solid object
+			while (hitN1.didHit && hitN1.cur->shininess > .5 && bounces < maxBounces) {
+				normal = newNormal(newDir, hitN1.cur->n);
+				newDir = glm::normalize(glm::reflect(newDir, normal));
+				hitN1 = castRay(hitN1.point, newDir, hitN1.cur);
+				bounces++;
+			}
+
+			if (hitN1.didHit && bounces < maxBounces) {
+				color = processLighting(hitN1);
+				// dim by .8 to represent light loss
+				float dim = .99;
+				color = glm::vec3(color.x * dim, color.y * dim, color.z * dim);
+			}
+			else {
+				//std::cout << "Failed\n";
+				//exit(1);
+				color = glm::vec3(0, 0, 0);
+			}
+
+
+		}
+		else {
+			// set to opaque color
+			color = processLighting(hit);
+		}
+
+
+
+		if (color.x > 255) {
+			color.x = 255;
+		}
+		if (color.y > 255) {
+			color.y = 255;
+		}
+		if (color.z > 255) {
+			color.z = 255;
+		}
+
+		data[index] = color.x;
+		data[index + 1] = color.y;
+		data[index + 2] = color.z;
+
+	}
+	// Did not hit so set to background color
+	else {
+		//data[index] = 135;
+		//data[index + 1] = 206;
+		//data[index + 2] = 235;
+
+		data[index] = 0;
+		data[index + 1] = 0;
+		data[index + 2] = 0;
+	}
+
+}
+
+
+
+
 int main() {
 	
 
@@ -385,14 +489,14 @@ int main() {
 	// wall along z axis
 	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 1);
 	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 1);
-	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    1);
-	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    1);
+	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    0);
+	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    0);
 
 	// wall along x axis
 	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 1);
 	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 1);
-	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     1);
-	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     1);
+	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     0);
+	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     0);
 
 	// wall along y axis
 	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
@@ -441,8 +545,8 @@ int main() {
 	
 
 	// This is the size for the number of rays to cast out. So length*width is the total.
-	int width = 400;
-	int height = 400;
+	int width = 800;
+	int height = 800;
 	// this is the size of the output(display) window
 	int win_width = 800;
 	int win_height = 800;
@@ -592,8 +696,11 @@ int main() {
 
 	// these are the vectors for the for_each loops so they can iterate
 	std::vector<int> horizontal(width), vertical(height);
-	std::iota(std::begin(horizontal), std::end(horizontal), -width / 2);
-	std::iota(std::begin(vertical), std::end(vertical), -height / 2);
+	//std::iota(std::begin(horizontal), std::end(horizontal), -width / 2);
+	std::iota(std::begin(horizontal), std::end(horizontal), 0);
+
+	//std::iota(std::begin(vertical), std::end(vertical), -height / 2);
+	std::iota(std::begin(vertical), std::end(vertical), 0);
 
 	// For performance, we will update either the top or bottom per frame
 	bool writeTop = false;
@@ -612,22 +719,6 @@ int main() {
 
 		begin = std::chrono::steady_clock::now();
 
-	
-
-		//// new execution
-		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
-		//	[data,width,height,&camera,&triangles,horizontal
-		//	](int y) {
-		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
-		//			[horizontal,y,data,width,height,&camera,&triangles](int x) {
-		//				castRay(data, y, x, width, height, &camera, &triangles);
-		//			}
-		//		);
-		//	}
-		//);
-
-
-
 		// reset counter
 		castRayCalls = 0;
 
@@ -637,106 +728,26 @@ int main() {
 		trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
 		trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
 
-		for (int y = 0; y <height; y++) {
-			for (int x = 0; x < width; x++) {
-				glm::vec3 dir, origin;
 
-				// convert camera plane pixel to into a range
-				float v = (y - height / 2) / (float)height;
-				float u = (x - width / 2) / (float)width;
+		// keep this just in case
+		//for (int y = 0; y <height; y++) {
+		//	for (int x = 0; x < width; x++) {
+		//		getPixelData(x, y, width, height, data, trans, &camera);
+		//	}
+		//}
 
-
-				// figure out where our pixel is based on the transform matrix
-				glm::vec4 pixel2 = trans * glm::vec4(u, v, camera.camera_viewport_depth, 1.0);
-
-
-				// now get the first 3 elements of pixel2 for the new location of the pixel
-				glm::vec3 pixel = { pixel2.x,pixel2.y,pixel2.z };
-				dir = pixel;
-				origin = camera.position;
-
-				// First ray cast out
-				PayLoad hit = castRay(origin, dir, NULL);
-
-				int index = (y * width * 3) + x * 3;
-				// This is the output color
-				glm::vec3 color = glm::vec3(0);
-
-				// If we hit, we need to check for shadows, else, just set to background color
-				// and also send out a bunch of other rays
-				if (hit.didHit) {
-
-
-					// get the normal facing the correct direction relative to the viewer
-					glm::vec3 normal = newNormal(dir, hit.cur->n);
-					
-
-					// so now our new normal is normal:
-
-					// define the max bounces before we stop
-					int maxBounces = 15;
-
-					// shiny object so reflect
-					if (hit.cur->shininess > .5) {
-						int bounces = 0;
-						glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
-						PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
-						// keep iterating with new rays until a solid object
-						while (hitN1.didHit && hitN1.cur->shininess > .5 && bounces < maxBounces) {
-							normal = newNormal(newDir, hitN1.cur->n);
-							newDir = glm::normalize(glm::reflect(newDir, normal));
-							hitN1 =  castRay(hitN1.point, newDir, hitN1.cur);
-							bounces++;
-						}
-
-						if (hitN1.didHit && bounces < maxBounces) {
-							color = processLighting(hitN1);
-							// dim by .8 to represent light loss
-							float dim = .99;
-							color = glm::vec3(color.x * dim, color.y * dim, color.z * dim);
-						}
-						else {
-							//std::cout << "Failed\n";
-							//exit(1);
-							color = glm::vec3(0,0,0);
-						}
-
-						
+		// parallelize to make it faster
+		std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+			[data,width,height,&camera,horizontal, trans
+			](int y) {
+				std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+					[horizontal,y,data,width,height,&camera, trans](int x) {
+						getPixelData(x, y, width, height, data, trans, &camera);
 					}
-					else {
-						// set to opaque color
-						color = processLighting(hit);
-					}
-
-
-
-					if (color.x > 255) {
-						color.x = 255;
-					}
-					if (color.y > 255) {
-						color.y = 255;
-					}
-					if (color.z > 255) {
-						color.z = 255;
-					}
-
-					data[index] = color.x;
-					data[index + 1] = color.y;
-					data[index + 2] = color.z;
-					
-				}
-				// Did not hit so set to background color
-				else {
-					//data[index] = 135;
-					//data[index + 1] = 206;
-					//data[index + 2] = 235;
-					data[index] = 0;
-					data[index + 1] = 0;
-					data[index + 2] = 0;
-				}
-
+				);
 			}
-		}
+		);
+
 		end = std::chrono::steady_clock::now();
 
 
