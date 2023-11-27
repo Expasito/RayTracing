@@ -291,6 +291,8 @@
     <None Include="Depend\lib\glfw3.dll" />
     <None Include="shaders\fragment.shader" />
     <None Include="shaders\vertex.shader" />
+    <None Include="src\cube.rto" />
+    <None Include="src\cube.stl" />
     <None Include="src\Image.ppm" />
   </ItemGroup>
   <ItemGroup>

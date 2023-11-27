@@ -450,6 +450,8 @@
     <None Include="Depend\include\glm\gtx\wrap.inl">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="src\cube.stl" />
+    <None Include="src\cube.rto" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Depend\lib\glfw3.lib" />

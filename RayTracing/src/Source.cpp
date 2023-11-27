@@ -477,9 +477,41 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 }
 
 
+void loadModel(const char* path) {
+	FILE* file = fopen(path, "rb");
 
+	if (file == NULL) {
+		printf("File not found\n");
+		exit(1);
+	}
+
+	while (true) {
+		char c;
+		float a1, a2, a3, b1, b2, b3, c1, c2, c3;
+		int d1, d2, d3;
+		int ret = fscanf(file, "(%f, %f, %f), (%f, %f, %f), (%f, %f, %f), (%d, %d, %d); ", &a1, &a2, &a3, &b1, &b2, &b3, &c1, &c2, &c3, &d1, &d2, &d3);
+		//printf("Ret: %d", ret);
+		if (ret == -1) {
+			return;
+		}
+		if (ret == 0) {
+			printf("Error with loading a model\n");
+			exit(1);
+		}
+		//printf("Adding");
+		addTriangle({ a1,a2,a3 }, { b1,b2,b3 }, { c1,c2,c3 }, {d1,d2,d3}, 0);
+	}
+
+
+}
 
 int main() {
+
+
+	loadModel("src/cube.rto");
+
+	//exit(1);
+
 	
 
 
@@ -487,34 +519,34 @@ int main() {
 	Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
 
 	// wall along z axis
-	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 1);
-	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 1);
-	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    0);
-	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    0);
+	//addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 1);
+	//addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 1);
+	//addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    0);
+	//addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    0);
 
-	// wall along x axis
-	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 1);
-	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 1);
-	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     0);
-	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     0);
+	//// wall along x axis
+	//addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 1);
+	//addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 1);
+	//addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     0);
+	//addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     0);
 
-	// wall along y axis
-	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
-	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
-	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 0);
-	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 0);
-
-
-	addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, 0);
-	addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, 0);
+	//// wall along y axis
+	//addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
+	//addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
+	//addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 0);
+	//addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 0);
 
 
-	addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, 0);
-	addTriangle({ 4,4,0 }, { 90,0,180 }, { .5,.5,.5 }, { 0,255,255 }, 0);
+	//addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, 0);
+	//addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, 0);
 
 
-	addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, 0);
-	addTriangle({ 5,0,0 }, { 90,90,180 }, { 1,1,1 }, { 255,255,0 }, 0);
+	//addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, 0);
+	//addTriangle({ 4,4,0 }, { 90,0,180 }, { .5,.5,.5 }, { 0,255,255 }, 0);
+
+
+	//addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, 0);
+	//addTriangle({ 5,0,0 }, { 90,90,180 }, { 1,1,1 }, { 255,255,0 }, 0);
 
 
 
@@ -527,20 +559,6 @@ int main() {
 	
 	lights.push_back({ {0,8,0},64 });
 	//lights.push_back({ {9.99,9.99,9.99},128 });
-
-
-
-
-
-	
-
-	// generate a lot of random triangles
-	//for (int i = 0; i < 40; i++) {
-	//	triangles.push_back({ { (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50, (float)rand() / (float)RAND_MAX * 100 - 50 },
-	//		{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50},
-	//		{ (float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 ,(float)rand() / (float)RAND_MAX * 100 - 50 },
-	//		{100,200,10} });
-	//}
 
 	
 
