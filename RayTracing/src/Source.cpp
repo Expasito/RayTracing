@@ -93,7 +93,7 @@ public:
 
 	// up is y
 	glm::vec3 worldUp = { 0,1,0 };
-	float moveBaseSpeed = 15.0;
+	float moveBaseSpeed = 30.0;
 	float moveSpeed=moveBaseSpeed;
 	// make it so the basespeed and rotspaeed are related
 	float rotBaseSpeed = moveBaseSpeed*3.14159265*2;
@@ -412,25 +412,25 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 		// so now our new normal is normal:
 
 		// define the max bounces before we stop
-		int maxBounces = 3;
+		int maxBounces = 1;
 
 		// shiny object so reflect
-		if (hit.cur->shininess > .5) {
+		if (hit.cur->shininess < .5) {
 			int bounces = 0;
 			glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
 			PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
 			// keep iterating with new rays until a solid object
-			while (hitN1.didHit && hitN1.cur->shininess > .5 && bounces < maxBounces) {
+			while (hitN1.didHit && bounces < maxBounces && hitN1.cur->shininess < .75) {
 				normal = newNormal(newDir, hitN1.cur->n);
 				newDir = glm::normalize(glm::reflect(newDir, normal));
 				hitN1 = castRay(hitN1.point, newDir, hitN1.cur);
 				bounces++;
 			}
 
-			if (hitN1.didHit && bounces < maxBounces) {
+			if (hitN1.didHit && bounces <= maxBounces) {
 				color = processLighting(hitN1);
 				// dim by .8 to represent light loss
-				float dim = .99;
+				float dim = bounces * .8;
 				color = glm::vec3(color.x * dim, color.y * dim, color.z * dim);
 			}
 			else {
@@ -519,39 +519,39 @@ int main() {
 	Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
 
 	// wall along z axis
-	//addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 1);
-	//addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 1);
-	//addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    0);
-	//addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    0);
+	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 1);
+	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 1);
+	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    .33);
+	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    .33);
 
 	//// wall along x axis
-	//addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 1);
-	//addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 1);
-	//addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     0);
-	//addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     0);
+	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, .5);
+	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, .5);
+	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     .33);
+	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     .33);
 
 	//// wall along y axis
-	//addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
-	//addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
-	//addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 0);
-	//addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 0);
+	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, .33);
+	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, .33);
+	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, .25);
+	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, .25);
 
 
-	//addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, 0);
-	//addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, 0);
+	addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, .25);
+	addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, .25);
 
 
-	//addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, 0);
-	//addTriangle({ 4,4,0 }, { 90,0,180 }, { .5,.5,.5 }, { 0,255,255 }, 0);
+	addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, .25);
+	addTriangle({ 4,4,0 }, { 90,0,180 }, { .5,.5,.5 }, { 0,255,255 }, .25);
 
 
-	//addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, 0);
-	//addTriangle({ 5,0,0 }, { 90,90,180 }, { 1,1,1 }, { 255,255,0 }, 0);
+	addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, .75);
+	addTriangle({ 5,0,0 }, { 90,90,180 }, { 1,1,1 }, { 255,255,0 }, .75);
 
 
 
-	//addTriangle({ 0,0,-40 }, { 0,0,0 }, { 20,20,20 }, { 255,255,255 }, 1);
-	//addTriangle({ 0,0,-40 }, { 0,0,180 }, { 20,20,20 }, { 255,255,255 }, 1);
+	addTriangle({ 0,0,-40 }, { 0,0,0 }, { 20,20,20 }, { 255,255,255 }, 1.0);
+	addTriangle({ 0,0,-40 }, { 0,0,180 }, { 20,20,20 }, { 255,255,255 }, 1.0);
 
 
 
