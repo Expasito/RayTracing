@@ -367,10 +367,37 @@ glm::vec3 processLighting(PayLoad hit) {
 		// this is the distance from the light to the point we hit in castRay
 		float dist = magnitude(l.position - hit.point);
 
+		// calculate specular lighting
+		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
+		glm::vec3 viewDir = glm::normalize(l.position - hit.point);
+		glm::vec3 reflectDir = glm::reflect(-lightDir, hit.cur->n);
+		float shiny = 1;
+		float spec = pow(float(fmax(glm::dot(viewDir, reflectDir), 0)), shiny);
+		glm::vec3 specular = glm::vec3(255, 255, 255) * (spec * glm::vec3(255, 255, 255));
+
+
+		float shadow = 1;
 		// and now we check if we hit the light first
 		if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
-			color += (l.intensity * hit.color) / (dist * dist);
+			shadow = 0;
+			//color += (l.intensity * hit.color) / (dist * dist);
 		}
+		//color += specular;
+		glm::vec3 ambient(255, 0, 0);
+		ambient = ambient * l.intensity / (dist * dist);
+		//glm::vec3 diffuse(12, 35, 22);
+
+		// calculate diffuse
+		glm::vec3 norm = glm::normalize(hit.cur->n);
+		float diff = fmax(glm::dot(norm, lightDir), 0);
+		glm::vec3 diffuse = glm::vec3(128, 128, 128) * (diff * glm::vec3(128, 128, 128));
+		specular = {12,12,12};
+		//color += (ambient*0.0f + diffuse + specular*0.0f) * (1- shadow);
+
+		float dot = fabs(glm::dot(lightDir, norm));
+		glm::vec3 col(255, 255, 255);
+		color += col * dot;
+		//color += lightDir*255.0f;
 	}
 	return color;
 }
@@ -412,15 +439,15 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 		// so now our new normal is normal:
 
 		// define the max bounces before we stop
-		int maxBounces = 1;
+		int maxBounces = 5;
 
 		// shiny object so reflect
-		if (hit.cur->shininess < .5) {
+		if (hit.cur->shininess > .5 && false) {
 			int bounces = 0;
 			glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
 			PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
 			// keep iterating with new rays until a solid object
-			while (hitN1.didHit && bounces < maxBounces && hitN1.cur->shininess < .75) {
+			while (hitN1.didHit && bounces < maxBounces && hitN1.cur->shininess > .5) {
 				normal = newNormal(newDir, hitN1.cur->n);
 				newDir = glm::normalize(glm::reflect(newDir, normal));
 				hitN1 = castRay(hitN1.point, newDir, hitN1.cur);
@@ -430,7 +457,7 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 			if (hitN1.didHit && bounces <= maxBounces) {
 				color = processLighting(hitN1);
 				// dim by .8 to represent light loss
-				float dim = bounces * .8;
+				float dim = bounces * 1;
 				color = glm::vec3(color.x * dim, color.y * dim, color.z * dim);
 			}
 			else {
@@ -508,7 +535,7 @@ void loadModel(const char* path) {
 int main() {
 
 
-	loadModel("src/cube.rto");
+	//loadModel("src/cube.rto");
 
 	//exit(1);
 
@@ -519,39 +546,39 @@ int main() {
 	Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
 
 	// wall along z axis
-	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 1);
-	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 1);
-	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    .33);
-	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    .33);
+	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 0);
+	addTriangle({0,0,10}, {0,0,180}, {10,10,10}, {255,0,0}, 0);
+	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    0);
+	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    0);
 
 	//// wall along x axis
-	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, .5);
-	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, .5);
-	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     .33);
-	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     .33);
+	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 0);
+	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 0);
+	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     0);
+	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     0);
 
 	//// wall along y axis
-	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, .33);
-	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, .33);
-	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, .25);
-	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, .25);
+	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
+	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
+	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 0);
+	addTriangle({ 0,10,0 }, { 90,0,180 }, { 10,10,10 }, { 255,0,255 }, 0);
 
 
-	addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, .25);
-	addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, .25);
+	addTriangle({ 0,-2,0 }, { 90,0,0 }, { 5,5,5 }, { 0,255,255 }, 0);
+	addTriangle({ 0,-2,0 }, { 90,0,180 }, { 5,5,5 }, { 0,255,255 }, 0);
 
 
-	addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, .25);
-	addTriangle({ 4,4,0 }, { 90,0,180 }, { .5,.5,.5 }, { 0,255,255 }, .25);
+	addTriangle({ 4,4,0 }, { 90,0,0 }, { .5,.5,.5 }, { 0,255,255 }, 0);
+	addTriangle({ 4,4,0 }, { 90,0,180 }, { .5,.5,.5 }, { 0,255,255 }, 0);
 
 
-	addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, .75);
-	addTriangle({ 5,0,0 }, { 90,90,180 }, { 1,1,1 }, { 255,255,0 }, .75);
+	addTriangle({ 5,0,0 }, { 90,90,0 }, { 1,1,1 }, { 255,255,0 }, 0);
+	addTriangle({ 5,0,0 }, { 90,90,180 }, { 1,1,1 }, { 255,255,0 }, 0);
 
 
 
-	addTriangle({ 0,0,-40 }, { 0,0,0 }, { 20,20,20 }, { 255,255,255 }, 1.0);
-	addTriangle({ 0,0,-40 }, { 0,0,180 }, { 20,20,20 }, { 255,255,255 }, 1.0);
+	addTriangle({ 0,0,-40 }, { 0,0,0 }, { 20,20,20 }, { 255,255,255 }, 0);
+	addTriangle({ 0,0,-40 }, { 0,0,180 }, { 20,20,20 }, { 255,255,255 }, 0);
 
 
 
