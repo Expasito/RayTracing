@@ -39,7 +39,7 @@ struct Triangle {
 		p1 = p1_; p2 = p2_; p3 = p3_;
 		// default to p1 here
 		p = p1;
-		n = cross(p1_ - p2_, p1_ - p3_);
+		n = normalize(cross(p1_ - p2_, p1_ - p3_));
 
 		// precalculate these since our triangles do not move
 		edge0 = p2 - p1;
@@ -64,7 +64,7 @@ std::vector<Light> lights;
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 {
-	os << vec.x << ' ' << vec.y << ' ' << vec.z;
+	os << vec.x << " " << vec.y << " " << vec.z;
 	return os;
 }
 
@@ -359,8 +359,15 @@ glm::vec3 newNormal(glm::vec3 dir, glm::vec3 normal) {
 	return normal;
 }
 
+float dot(glm::vec3 a, glm::vec3 b) {
+	//std::cout << "A: (" << a << ")" << "\n";
+	//std::cout << "B: (" << b  << ")" << "\n";
+	//std::cout << "COMP: " << a.x * b.x << " " << a.y * b.y << " " << a.z * b.z << "\n";
+	return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 
-glm::vec3 processLighting(PayLoad hit) {
+
+glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 	glm::vec3 color(0);
 	for (Light l : lights) {
 		PayLoad hit2 = castRay(hit.point, normalize(l.position - hit.point), hit.cur);
@@ -369,11 +376,19 @@ glm::vec3 processLighting(PayLoad hit) {
 
 		// calculate specular lighting
 		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
-		glm::vec3 viewDir = glm::normalize(l.position - hit.point);
+		//std::cout << "Light Dir: (" << lightDir << ")" << "\n";
+		glm::vec3 viewDir = glm::normalize(camera->position - hit.point);
+		//std::cout << "View Dir: (" << viewDir << ")\n";
+		//std::cout << "Normal: (" << hit.cur->n << ")\n";
 		glm::vec3 reflectDir = glm::reflect(-lightDir, hit.cur->n);
-		float shiny = 1;
-		float spec = pow(float(fmax(glm::dot(viewDir, reflectDir), 0)), shiny);
-		glm::vec3 specular = glm::vec3(255, 255, 255) * (spec * glm::vec3(255, 255, 255));
+		//std::cout << "Reflect Dir: (" << reflectDir << ")\n";
+		float shiny = 512;
+		//std::cout << dot(viewDir, reflectDir) << "\n";
+		float spec = pow(float(fmax(dot(viewDir, reflectDir), 0)), shiny);
+		//std::cout << spec << "\n";
+		glm::vec3 specular = (spec * glm::vec3(64, 64, 64));
+
+		color += specular;
 
 
 		float shadow = 1;
@@ -391,12 +406,22 @@ glm::vec3 processLighting(PayLoad hit) {
 		glm::vec3 norm = glm::normalize(hit.cur->n);
 		float diff = fmax(glm::dot(norm, lightDir), 0);
 		glm::vec3 diffuse = glm::vec3(128, 128, 128) * (diff * glm::vec3(128, 128, 128));
-		specular = {12,12,12};
+		//specular = {12,12,12};
+
 		//color += (ambient*0.0f + diffuse + specular*0.0f) * (1- shadow);
 
 		float dot = fabs(glm::dot(lightDir, norm));
 		glm::vec3 col(255, 255, 255);
-		color += col * dot;
+		col = hit.color;
+		color += (col * dot) * (1-shadow);
+
+
+
+		float dot2 = fabs(glm::dot(camera->direction, norm));
+		dot2 = pow(fmax(dot2, 0), 2);
+		glm::vec3 col2(255, 255, 255);
+		//color += (col2 * dot2);
+		//color += specular;
 		//color += lightDir*255.0f;
 	}
 	return color;
@@ -455,7 +480,7 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 			}
 
 			if (hitN1.didHit && bounces <= maxBounces) {
-				color = processLighting(hitN1);
+				color = processLighting(hitN1, camera);
 				// dim by .8 to represent light loss
 				float dim = bounces * 1;
 				color = glm::vec3(color.x * dim, color.y * dim, color.z * dim);
@@ -470,7 +495,7 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 		}
 		else {
 			// set to opaque color
-			color = processLighting(hit);
+			color = processLighting(hit, camera);
 		}
 
 
