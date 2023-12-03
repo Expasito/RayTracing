@@ -376,53 +376,31 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 
 		// calculate specular lighting
 		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
-		//std::cout << "Light Dir: (" << lightDir << ")" << "\n";
 		glm::vec3 viewDir = glm::normalize(camera->position - hit.point);
-		//std::cout << "View Dir: (" << viewDir << ")\n";
-		//std::cout << "Normal: (" << hit.cur->n << ")\n";
 		glm::vec3 reflectDir = glm::reflect(-lightDir, hit.cur->n);
-		//std::cout << "Reflect Dir: (" << reflectDir << ")\n";
-		float shiny = 512;
-		//std::cout << dot(viewDir, reflectDir) << "\n";
+		float shiny = 32;
 		float spec = pow(float(fmax(dot(viewDir, reflectDir), 0)), shiny);
-		//std::cout << spec << "\n";
-		glm::vec3 specular = (spec * glm::vec3(64, 64, 64));
 
-		color += specular;
+		glm::vec3 specular = (spec * glm::vec3(128, 128, 128));
 
 
 		float shadow = 1;
 		// and now we check if we hit the light first
 		if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
 			shadow = 0;
-			//color += (l.intensity * hit.color) / (dist * dist);
 		}
-		//color += specular;
-		glm::vec3 ambient(255, 0, 0);
-		ambient = ambient * l.intensity / (dist * dist);
-		//glm::vec3 diffuse(12, 35, 22);
+
 
 		// calculate diffuse
 		glm::vec3 norm = glm::normalize(hit.cur->n);
-		float diff = fmax(glm::dot(norm, lightDir), 0);
-		glm::vec3 diffuse = glm::vec3(128, 128, 128) * (diff * glm::vec3(128, 128, 128));
-		//specular = {12,12,12};
-
-		//color += (ambient*0.0f + diffuse + specular*0.0f) * (1- shadow);
 
 		float dot = fabs(glm::dot(lightDir, norm));
 		glm::vec3 col(255, 255, 255);
 		col = hit.color;
-		color += (col * dot) * (1-shadow);
+		color += (col * dot + specular) * (1-shadow);
 
 
 
-		float dot2 = fabs(glm::dot(camera->direction, norm));
-		dot2 = pow(fmax(dot2, 0), 2);
-		glm::vec3 col2(255, 255, 255);
-		//color += (col2 * dot2);
-		//color += specular;
-		//color += lightDir*255.0f;
 	}
 	return color;
 }
