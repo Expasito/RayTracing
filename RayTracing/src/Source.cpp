@@ -258,6 +258,8 @@ struct PayLoad {
 };
 
 int castRayCalls = 0;
+int softMathCalls = 0;
+int hardMathCalls = 0;
 
 PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 	// add 1 to the counter
@@ -270,12 +272,50 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 			continue;
 		}
 
+		softMathCalls++;
+
+		// remove triangle if not near the ray
+		if (dir.x > 0) {
+			if (triangle.p1.x < 0 && triangle.p2.x < 0 && triangle.p3.x < 0) {
+				//exit(1);
+				continue;
+			}
+		}
+		if (dir.x < 0) {
+			if (triangle.p1.x > 0 && triangle.p2.x > 0 && triangle.p3.x > 0) {
+				//exit(1);
+				continue;
+			}
+		}
+		if (dir.y > 0) {
+			if (triangle.p1.y < 0 && triangle.p2.y < 0 && triangle.p3.y < 0) {
+				continue;
+			}
+		}
+		if (dir.y < 0) {
+			if (triangle.p1.y > 0 && triangle.p2.y > 0 && triangle.p3.y > 0) {
+				continue;
+			}
+		}
+		if (dir.z > 0) {
+			if (triangle.p1.z < 0 && triangle.p2.z < 0 && triangle.p3.z < 0) {
+				continue;
+			}
+		}
+		if (dir.z < 0) {
+			if (triangle.p1.z > 0 && triangle.p2.z > 0 && triangle.p3.z > 0) {
+				continue;
+			}
+		}
+
+
 		float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
 		// negative t values get filtered out already so do it now
 		if (t < 0) {
 			continue;
 		}
 
+		hardMathCalls++;
 
 		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
 
@@ -378,7 +418,7 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
 		glm::vec3 viewDir = glm::normalize(camera->position - hit.point);
 		glm::vec3 reflectDir = glm::reflect(-lightDir, hit.cur->n);
-		float shiny = 32;
+		float shiny = 256;
 		float spec = pow(float(fmax(dot(viewDir, reflectDir), 0)), shiny);
 
 		glm::vec3 specular = (spec * glm::vec3(128, 128, 128));
@@ -395,8 +435,7 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 		glm::vec3 norm = glm::normalize(hit.cur->n);
 
 		float dot = fabs(glm::dot(lightDir, norm));
-		glm::vec3 col(255, 255, 255);
-		col = hit.color;
+		glm::vec3 col = hit.color;
 		color += (col * dot + specular) * (1-shadow);
 
 
@@ -442,7 +481,7 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 		// so now our new normal is normal:
 
 		// define the max bounces before we stop
-		int maxBounces = 5;
+		int maxBounces = 1;
 
 		// shiny object so reflect
 		if (hit.cur->shininess > .5 && false) {
@@ -588,6 +627,7 @@ int main() {
 
 	
 	lights.push_back({ {0,8,0},64 });
+	//lights.push_back({ {5,8,5} , 64 });
 	//lights.push_back({ {9.99,9.99,9.99},128 });
 
 	
@@ -769,6 +809,8 @@ int main() {
 
 		// reset counter
 		castRayCalls = 0;
+		softMathCalls = 0;
+		hardMathCalls = 0;
 
 
 		// rotate the camrea plane pixel around the camera's location
@@ -820,7 +862,8 @@ int main() {
 
 		// get delta time and frame data
 		milis = (end - begin).count() / 1000000.0;
-		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << " and had : " << castRayCalls << " castRay calls in this frame\n";
+		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << " and had : " << castRayCalls << " castRay calls in this frame";
+		std::cout << " SoftCalls: " << softMathCalls << " HardCalls: " << hardMathCalls << " Frac: " << (float)hardMathCalls / (float)softMathCalls << "\n";
 
 
 
