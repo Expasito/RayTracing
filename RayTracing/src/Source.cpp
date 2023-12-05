@@ -261,11 +261,52 @@ int castRayCalls = 0;
 int softMathCalls = 0;
 int hardMathCalls = 0;
 
+
+void RowReduce(float A[][4])
+{
+	const int nrows = 3; // number of rows
+	const int ncols = 4; // number of columns
+
+	int lead = 0;
+
+	while (lead < nrows) {
+		float d, m;
+
+		for (int r = 0; r < nrows; r++) { // for each row ...
+			/* calculate divisor and multiplier */
+			d = A[lead][lead];
+			m = A[r][lead] / A[lead][lead];
+
+			for (int c = 0; c < ncols; c++) { // for each column ...
+				if (r == lead)
+					A[r][c] /= d;               // make pivot = 1
+				else
+					A[r][c] -= A[lead][c] * m;  // make other = 0
+			}
+		}
+
+		lead++;
+	}
+}
+
 PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 	// add 1 to the counter
 	castRayCalls += 1;
 	PayLoad closest = { {0,0,0},{0,0,0},1e9,NULL,false };
 	bool found = false;
+
+
+	glm::vec3 x = dir;
+	glm::vec3 y = glm::cross(dir, glm::vec3(0, 0, -1));
+	glm::vec3 z = glm::cross(dir, glm::vec3(0, 1, 0));
+
+	glm::mat3 B = { {x}, {y}, {z} };
+	glm::mat3 BInv = glm::inverse(B);
+	glm::mat3 AB = { {glm::vec3(1,0,0) *BInv}, {glm::vec3(0,1,0) * BInv}, {glm::vec3(0,0,1) * BInv}};
+
+	glm::mat3 A = B * AB * BInv;
+
+
 	for (Triangle& triangle : triangles) {
 		if (&triangle == curr) {
 			// skip the matched one if curr is a Triangle*
@@ -274,61 +315,175 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 		softMathCalls++;
 
-		// remove triangle if not near the ray
-		if (dir.x > 0) {
-			if (triangle.p1.x < 0 && triangle.p2.x < 0 && triangle.p3.x < 0) {
-				//exit(1);
+		glm::vec3 p1 = triangle.p1-orgin * A;
+		glm::vec3 p2 = triangle.p2-orgin * A;
+		glm::vec3 p3 = triangle.p3-orgin * A;
+
+		if (p1.y>0 && p2.y > 0 && p3.y > 0) {
+			//float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
+
+			//glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+
+			//closest = { I,triangle.color,t ,&triangle,true };
+			//found = true;
+		}
+		else {
+			float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
+			if (t < 0) {
 				continue;
 			}
-		}
-		if (dir.x < 0) {
-			if (triangle.p1.x > 0 && triangle.p2.x > 0 && triangle.p3.x > 0) {
-				//exit(1);
-				continue;
-			}
-		}
-		if (dir.y > 0) {
-			if (triangle.p1.y < 0 && triangle.p2.y < 0 && triangle.p3.y < 0) {
-				continue;
-			}
-		}
-		if (dir.y < 0) {
-			if (triangle.p1.y > 0 && triangle.p2.y > 0 && triangle.p3.y > 0) {
-				continue;
-			}
-		}
-		if (dir.z > 0) {
-			if (triangle.p1.z < 0 && triangle.p2.z < 0 && triangle.p3.z < 0) {
-				continue;
-			}
-		}
-		if (dir.z < 0) {
-			if (triangle.p1.z > 0 && triangle.p2.z > 0 && triangle.p3.z > 0) {
-				continue;
+			glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+
+
+			if (t < closest.distance && t > 0.00001) {
+				if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
+					dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
+					dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
+					) {
+					closest = { I,triangle.color,t ,&triangle,true };
+					found = true;
+				}
 			}
 		}
 
+		
 
-		float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
+		//// remove triangle if not near the ray
+		//if (dir.x > 0) {
+		//	if (triangle.p1.x < 0 && triangle.p2.x < 0 && triangle.p3.x < 0) {
+		//		//exit(1);
+		//		continue;
+		//	}
+		//}
+		//if (dir.x < 0) {
+		//	if (triangle.p1.x > 0 && triangle.p2.x > 0 && triangle.p3.x > 0) {
+		//		//exit(1);
+		//		continue;
+		//	}
+		//}
+		//if (dir.y > 0) {
+		//	if (triangle.p1.y < 0 && triangle.p2.y < 0 && triangle.p3.y < 0) {
+		//		continue;
+		//	}
+		//}
+		//if (dir.y < 0) {
+		//	if (triangle.p1.y > 0 && triangle.p2.y > 0 && triangle.p3.y > 0) {
+		//		continue;
+		//	}
+		//}
+		//if (dir.z > 0) {
+		//	if (triangle.p1.z < 0 && triangle.p2.z < 0 && triangle.p3.z < 0) {
+		//		continue;
+		//	}
+		//}
+		//if (dir.z < 0) {
+		//	if (triangle.p1.z > 0 && triangle.p2.z > 0 && triangle.p3.z > 0) {
+		//		continue;
+		//	}
+		//}
+
+
+
+
+		//float mat[3][4] = {
+		//	{x.x,y.x,z.x,triangle.p1.x-orgin.x},
+		//	{x.y,y.y,z.y,triangle.p1.z-orgin.y},
+		//	{x.z,y.z,z.z,triangle.p1.z-orgin.z},
+		//};
+
+		//RowReduce(mat);
+
+		//float c1 = mat[0][3];
+		//float c2 = mat[1][3];
+		//float c3 = mat[2][3];
+
+		//glm::vec3 p1 = { c1,c2,c3 };
+
+		//float mat2[3][4] = {
+		//	{x.x,y.x,z.x,triangle.p2.x-orgin.x},
+		//	{x.y,y.y,z.y,triangle.p2.z-orgin.y},
+		//	{x.z,y.z,z.z,triangle.p2.z-orgin.z},
+		//};
+
+		//RowReduce(mat2);
+
+		//c1 = mat2[0][3];
+		//c2 = mat2[1][3];
+		//c3 = mat2[2][3];
+
+		//glm::vec3 p2 = { c1,c2,c3 };
+
+
+		//float mat3[3][4] = {
+		//	{x.x,y.x,z.x,triangle.p3.x-orgin.x},
+		//	{x.y,y.y,z.y,triangle.p3.z-orgin.y},
+		//	{x.z,y.z,z.z,triangle.p3.z-orgin.z},
+		//};
+
+		//RowReduce(mat3);
+
+		//c1 = mat3[0][3];
+		//c2 = mat3[1][3];
+		//c3 = mat3[2][3];
+
+		//glm::vec3 p3 = { c1,c2,c3 };
+
+		//if (p1.x > 0 && p2.x > 0 && p3.x > 0) {
+		//	continue;
+		//}
+		//if (p1.x < 0 && p2.x < 0 && p3.x < 0) {
+		//	continue;
+		//}
+
+		
+
+		//if (p1.y > 0 && p2.y > 0 && p3.y > 0) {
+		//	continue;
+		//}
+		//if (p1.y < 0 && p2.y < 0 && p3.y < 0) {
+		//	continue;
+		//}
+
+		//if (p1.z > 0 && p2.z > 0 && p3.z > 0) {
+		//	continue;
+		//}
+		//if (p1.z < 0 && p2.z < 0 && p3.z < 0) {
+		//	continue;
+		//}
+
+
+		//exit(1);
+
+		//glm::mat3x4 trans = { {x.x,x.y,x.z, triangle.p1,x}, {y.x,y.y,y.z, triangle.p1.y}, {z.x,z.y,z.z, triangle.p1.z} };
+
+
+
+
+		//float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
 		// negative t values get filtered out already so do it now
-		if (t < 0) {
-			continue;
-		}
+		//if (t < 0) {
+			//continue;
+		//}
 
-		hardMathCalls++;
+		//glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
 
-		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+		//closest = { I,triangle.color,t ,&triangle,true };
+		//found = true;
+
+		//hardMathCalls++;
+
+		//glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
 
 
-		if (t < closest.distance && t > 0.00001) {
-			if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
-				dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
-				dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
-				) {
-				closest = { I,triangle.color,t ,&triangle,true };
-				found = true;
-			}
-		}
+		//if (t < closest.distance && t > 0.00001) {
+		//	if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
+		//		dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
+		//		dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
+		//		) {
+		//		closest = { I,triangle.color,t ,&triangle,true };
+		//		found = true;
+		//	}
+		//}
 
 		
 	}
@@ -820,23 +975,23 @@ int main() {
 
 
 		// keep this just in case
-		//for (int y = 0; y <height; y++) {
-		//	for (int x = 0; x < width; x++) {
-		//		getPixelData(x, y, width, height, data, trans, &camera);
-		//	}
-		//}
-
-		// parallelize to make it faster
-		std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
-			[data,width,height,&camera,horizontal, trans
-			](int y) {
-				std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
-					[horizontal,y,data,width,height,&camera, trans](int x) {
-						getPixelData(x, y, width, height, data, trans, &camera);
-					}
-				);
+		for (int y = 0; y <height; y++) {
+			for (int x = 0; x < width; x++) {
+				getPixelData(x, y, width, height, data, trans, &camera);
 			}
-		);
+		}
+
+		//// parallelize to make it faster
+		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+		//	[data,width,height,&camera,horizontal, trans
+		//	](int y) {
+		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+		//			[horizontal,y,data,width,height,&camera, trans](int x) {
+		//				getPixelData(x, y, width, height, data, trans, &camera);
+		//			}
+		//		);
+		//	}
+		//);
 
 		end = std::chrono::steady_clock::now();
 
