@@ -494,6 +494,7 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 #include <algorithm>
 #include <execution>
+#include <glm/gtx/string_cast.hpp>
 
 void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::vec3 color, float shininess_) {
 	// These are our points for the base triangle
@@ -730,6 +731,56 @@ void loadModel(const char* path) {
 }
 
 int main() {
+
+	glm::vec2 v1 = {1,1};
+	glm::vec2 v2 = {-1, 1};
+
+
+	exit(1);
+
+	glm::vec3 dir = {1,2,0};
+	glm::vec3 x = (dir);
+	//glm::vec3 y = (glm::cross(dir, glm::vec3(0, 0, -1)));
+	glm::vec3 y = {2, -1, 0};
+	glm::vec3 z = (glm::cross(x, y));
+	
+	std::cout << "X: " << x << " Y: " << y << " Z: " << z << "\n";
+
+	//exit(1);
+
+	glm::mat3 B = { {x}, {y}, {z} };
+	std::cout << glm::to_string(B) << "\n\n\n";
+
+	//glm::mat3x2 C = {glm::vec2(1), glm::vec2(2), glm::vec2(3)};
+	//std::cout << glm::to_string(C) << "\n";
+	//exit(1);
+	
+	glm::mat3 BInv = glm::inverse(B);
+	glm::mat3 BPert = glm::transpose(B);
+
+	std::cout << glm::to_string(BInv) << "\n\n";
+	std::cout << glm::to_string(BPert) << "\n\n";
+	glm::mat3 AB = { {glm::vec3(1,0,0) * x}, {glm::vec3(0,1,0) * y}, {glm::vec3(0,0,1) * z} };
+
+	std::cout << "AB: " << glm::to_string(AB) << "\n\n";
+
+	/*std::cout << "Binv * e1: " << glm::to_string(glm::vec3(1,0,0)*BInv) << "\n";
+	std::cout << "Binv * e2: " << glm::to_string(glm::vec3(0, 1, 0) * BInv) << "\n";
+	std::cout << "Binv * e1: " << glm::to_string(glm::vec3(1, 0, 0) * BInv) << "\n";*/
+
+
+	glm::mat3 A = (B * AB) * BInv;
+
+	std::cout << "A: " << glm::to_string(A) << "\n";
+
+	glm::vec3 u = {1,2,0};
+
+	std::cout << u*A << "\n";
+	std::cout << A * u << "\n";
+
+	//std::cout << ""
+
+	exit(1);
 
 
 	//loadModel("src/cube.rto");
