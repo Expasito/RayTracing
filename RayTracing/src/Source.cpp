@@ -11,6 +11,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtx/rotate_vector.hpp>
 #include <thread>
+#include <glm/gtx/string_cast.hpp>
+#include <algorithm>
+#include <execution>
 
 
 
@@ -93,17 +96,17 @@ public:
 
 	// up is y
 	glm::vec3 worldUp = { 0,1,0 };
-	float moveBaseSpeed = 30.0;
+	float moveBaseSpeed = 1/128.0f;
 	float moveSpeed=moveBaseSpeed;
 	// make it so the basespeed and rotspaeed are related
-	float rotBaseSpeed = moveBaseSpeed*3.14159265*2;
+	float rotBaseSpeed = moveBaseSpeed*3.14159265 * 2;
 	float rotSpeed=rotBaseSpeed;
 
 	// camera view plane sizes. Sort of determines the distance between each pixel
 	// these are multipliers for the size of the viewing plane
-	float camera_viewport_width = 2.0;
-	float camera_viewport_height = 2.0;
-	float camera_viewport_depth = 1.0;
+	float camera_viewport_width = 1.0;
+	float camera_viewport_height = 1.0;
+	float camera_viewport_depth = .5;
 
 
 
@@ -291,20 +294,34 @@ void RowReduce(float A[][4])
 
 PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 	// add 1 to the counter
-	castRayCalls += 1;
+	//castRayCalls += 1;
 	PayLoad closest = { {0,0,0},{0,0,0},1e9,NULL,false };
 	bool found = false;
 
 
-	glm::vec3 x = dir;
-	glm::vec3 y = glm::cross(dir, glm::vec3(0, 0, -1));
-	glm::vec3 z = glm::cross(dir, glm::vec3(0, 1, 0));
+	// get the orthogonal basis
+
+	glm::vec3 x = (dir);
+	//glm::vec3 y = (glm::cross(dir, glm::vec3(0, 0, -1)));
+	glm::vec3 y = {-dir.y, dir.x, 0};
+	//glm::vec3 y = {2, -1, 0};
+	//glm::vec3 z = (glm::cross(x, y));
+	//glm::vec3 z = glm::cross(dir, glm::vec3(0, 1, 0));
+	glm::vec3 z = {-dir.z,0,dir.x};
+
+
+
+	//std::cout << "X: " << x << " Y: " << y << " Z: " << z << "\n";
+
+	//exit(1);
 
 	glm::mat3 B = { {x}, {y}, {z} };
-	glm::mat3 BInv = glm::inverse(B);
-	glm::mat3 AB = { {glm::vec3(1,0,0) *BInv}, {glm::vec3(0,1,0) * BInv}, {glm::vec3(0,0,1) * BInv}};
 
-	glm::mat3 A = B * AB * BInv;
+	// now get the inverse(transpose also works) so we can convert to our new coordinate system
+	//glm::mat3 BInv = glm::inverse(B);
+	glm::mat3 BInv = glm::transpose(B);
+
+
 
 
 	for (Triangle& triangle : triangles) {
@@ -315,17 +332,18 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 		softMathCalls++;
 
-		glm::vec3 p1 = triangle.p1-orgin * A;
-		glm::vec3 p2 = triangle.p2-orgin * A;
-		glm::vec3 p3 = triangle.p3-orgin * A;
+		// put back at orgin
+		glm::vec3 p1 = BInv * (triangle.p1-orgin);
+		glm::vec3 p2 = BInv * (triangle.p2-orgin);
+		glm::vec3 p3 = BInv * (triangle.p3-orgin);
 
-		if (p1.y>0 && p2.y > 0 && p3.y > 0) {
-			//float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
+		if ((p1.y > 0 && p2.y > 0 && p3.y > 0) ||
+			(p1.y < 0 && p2.y < 0 && p3.y < 0) ||
+			(p1.z > 0 && p2.z > 0 && p3.z > 0) ||
+			(p1.z < 0 && p2.z < 0 && p3.z < 0) ||
+			(p1.x < 0 && p2.x < 0 && p3.x < 0)
+			) {
 
-			//glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-
-			//closest = { I,triangle.color,t ,&triangle,true };
-			//found = true;
 		}
 		else {
 			float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
@@ -333,6 +351,7 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 				continue;
 			}
 			glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+
 
 
 			if (t < closest.distance && t > 0.00001) {
@@ -346,116 +365,28 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 			}
 		}
 
-		
-
-		//// remove triangle if not near the ray
-		//if (dir.x > 0) {
-		//	if (triangle.p1.x < 0 && triangle.p2.x < 0 && triangle.p3.x < 0) {
-		//		//exit(1);
-		//		continue;
-		//	}
-		//}
-		//if (dir.x < 0) {
-		//	if (triangle.p1.x > 0 && triangle.p2.x > 0 && triangle.p3.x > 0) {
-		//		//exit(1);
-		//		continue;
-		//	}
-		//}
-		//if (dir.y > 0) {
-		//	if (triangle.p1.y < 0 && triangle.p2.y < 0 && triangle.p3.y < 0) {
-		//		continue;
-		//	}
-		//}
-		//if (dir.y < 0) {
-		//	if (triangle.p1.y > 0 && triangle.p2.y > 0 && triangle.p3.y > 0) {
-		//		continue;
-		//	}
-		//}
-		//if (dir.z > 0) {
-		//	if (triangle.p1.z < 0 && triangle.p2.z < 0 && triangle.p3.z < 0) {
-		//		continue;
-		//	}
-		//}
-		//if (dir.z < 0) {
-		//	if (triangle.p1.z > 0 && triangle.p2.z > 0 && triangle.p3.z > 0) {
-		//		continue;
-		//	}
-		//}
-
-
-
-
-		//float mat[3][4] = {
-		//	{x.x,y.x,z.x,triangle.p1.x-orgin.x},
-		//	{x.y,y.y,z.y,triangle.p1.z-orgin.y},
-		//	{x.z,y.z,z.z,triangle.p1.z-orgin.z},
-		//};
-
-		//RowReduce(mat);
-
-		//float c1 = mat[0][3];
-		//float c2 = mat[1][3];
-		//float c3 = mat[2][3];
-
-		//glm::vec3 p1 = { c1,c2,c3 };
-
-		//float mat2[3][4] = {
-		//	{x.x,y.x,z.x,triangle.p2.x-orgin.x},
-		//	{x.y,y.y,z.y,triangle.p2.z-orgin.y},
-		//	{x.z,y.z,z.z,triangle.p2.z-orgin.z},
-		//};
-
-		//RowReduce(mat2);
-
-		//c1 = mat2[0][3];
-		//c2 = mat2[1][3];
-		//c3 = mat2[2][3];
-
-		//glm::vec3 p2 = { c1,c2,c3 };
-
-
-		//float mat3[3][4] = {
-		//	{x.x,y.x,z.x,triangle.p3.x-orgin.x},
-		//	{x.y,y.y,z.y,triangle.p3.z-orgin.y},
-		//	{x.z,y.z,z.z,triangle.p3.z-orgin.z},
-		//};
-
-		//RowReduce(mat3);
-
-		//c1 = mat3[0][3];
-		//c2 = mat3[1][3];
-		//c3 = mat3[2][3];
-
-		//glm::vec3 p3 = { c1,c2,c3 };
-
-		//if (p1.x > 0 && p2.x > 0 && p3.x > 0) {
+		//if (p1.y>0 && p2.y > 0 && p3.y > 0) {
 		//	continue;
 		//}
-		//if (p1.x < 0 && p2.x < 0 && p3.x < 0) {
+		//else if (p1.y < 0 && p2.y < 0 && p3.y < 0) {
 		//	continue;
 		//}
+		//else if (p1.z > 0 && p2.z > 0 && p3.z > 0) {
+		//	continue;
+		//}
+		//else if (p1.z < 0 && p2.z < 0 && p3.z < 0) {
+		//	continue;
+		//}
+		//else if (p1.x < 0 && p2.x < 0 && p3.x < 0) {
+		//	continue;
+		//}
+		//else {
+		//	
+		//}
+
 
 		
-
-		//if (p1.y > 0 && p2.y > 0 && p3.y > 0) {
-		//	continue;
-		//}
-		//if (p1.y < 0 && p2.y < 0 && p3.y < 0) {
-		//	continue;
-		//}
-
-		//if (p1.z > 0 && p2.z > 0 && p3.z > 0) {
-		//	continue;
-		//}
-		//if (p1.z < 0 && p2.z < 0 && p3.z < 0) {
-		//	continue;
-		//}
-
-
-		//exit(1);
-
-		//glm::mat3x4 trans = { {x.x,x.y,x.z, triangle.p1,x}, {y.x,y.y,y.z, triangle.p1.y}, {z.x,z.y,z.z, triangle.p1.z} };
-
+	
 
 
 
@@ -492,9 +423,7 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 }
 
 
-#include <algorithm>
-#include <execution>
-#include <glm/gtx/string_cast.hpp>
+
 
 void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::vec3 color, float shininess_) {
 	// These are our points for the base triangle
@@ -625,6 +554,21 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 	// This is the output color
 	glm::vec3 color = glm::vec3(0);
 
+	if (hit.didHit == true) {
+		data[index] = hit.color.x;
+		data[index + 1] = hit.color.y;
+		data[index + 2] = hit.color.z;
+	}
+	else {
+		data[index] = 0;
+		data[index + 1] = 0;
+		data[index + 2] = 0;
+	}
+
+
+
+	return;
+
 	// If we hit, we need to check for shadows, else, just set to background color
 	// and also send out a bunch of other rays
 	if (hit.didHit) {
@@ -732,66 +676,13 @@ void loadModel(const char* path) {
 
 int main() {
 
-	glm::vec2 v1 = {1,1};
-	glm::vec2 v2 = {-1, 1};
-
-
-	exit(1);
-
-	glm::vec3 dir = {1,2,0};
-	glm::vec3 x = (dir);
-	//glm::vec3 y = (glm::cross(dir, glm::vec3(0, 0, -1)));
-	glm::vec3 y = {2, -1, 0};
-	glm::vec3 z = (glm::cross(x, y));
-	
-	std::cout << "X: " << x << " Y: " << y << " Z: " << z << "\n";
-
-	//exit(1);
-
-	glm::mat3 B = { {x}, {y}, {z} };
-	std::cout << glm::to_string(B) << "\n\n\n";
-
-	//glm::mat3x2 C = {glm::vec2(1), glm::vec2(2), glm::vec2(3)};
-	//std::cout << glm::to_string(C) << "\n";
-	//exit(1);
-	
-	glm::mat3 BInv = glm::inverse(B);
-	glm::mat3 BPert = glm::transpose(B);
-
-	std::cout << glm::to_string(BInv) << "\n\n";
-	std::cout << glm::to_string(BPert) << "\n\n";
-	glm::mat3 AB = { {glm::vec3(1,0,0) * x}, {glm::vec3(0,1,0) * y}, {glm::vec3(0,0,1) * z} };
-
-	std::cout << "AB: " << glm::to_string(AB) << "\n\n";
-
-	/*std::cout << "Binv * e1: " << glm::to_string(glm::vec3(1,0,0)*BInv) << "\n";
-	std::cout << "Binv * e2: " << glm::to_string(glm::vec3(0, 1, 0) * BInv) << "\n";
-	std::cout << "Binv * e1: " << glm::to_string(glm::vec3(1, 0, 0) * BInv) << "\n";*/
-
-
-	glm::mat3 A = (B * AB) * BInv;
-
-	std::cout << "A: " << glm::to_string(A) << "\n";
-
-	glm::vec3 u = {1,2,0};
-
-	std::cout << u*A << "\n";
-	std::cout << A * u << "\n";
-
-	//std::cout << ""
-
-	exit(1);
-
-
-	//loadModel("src/cube.rto");
-
-	//exit(1);
-
-	
-
 
 	// make camera a public variable
 	Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
+	//Camera camera(glm::vec3(0, 0, -2), glm::vec3(0, 0, 0));
+	//Camera camera(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0));
+
+
 
 	// wall along z axis
 	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 0);
@@ -799,13 +690,13 @@ int main() {
 	addTriangle({ 0,0,-10 }, { 0,0,0 }, { 10,10,10 }, { 255,0,128 },    0);
 	addTriangle({ 0,0,-10 }, { 0,0,180 }, { 10,10,10 }, { 255,0,128 },    0);
 
-	//// wall along x axis
+	// wall along x axis
 	addTriangle({ 10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,0 }, 0);
 	addTriangle({ 10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,0 }, 0);
 	addTriangle({ -10,0, 0 }, { 0,90,0 }, { 10,10,10 }, { 0,255,128 },     0);
 	addTriangle({ -10,0, 0 }, { 0,90,180 }, { 10,10,10 }, { 0,255,128 },     0);
 
-	//// wall along y axis
+	// wall along y axis
 	addTriangle({ 0,-10,0 }, { 90,0,0 }, { 10,10,10 }, { 0,0,255 }, 0);
 	addTriangle({ 0,-10,0 }, { 90,0,180 }, { 10,10,10 }, { 0,0,255 }, 0);
 	addTriangle({ 0,10,0 }, { 90,0,0 }, { 10,10,10 }, { 255,0,255 }, 0);
@@ -831,10 +722,15 @@ int main() {
 
 
 
+	//addTriangle({0,0,0}, {0,0,0}, {1,1,1}, {255,255,255}, 0);
+
+
+
+
 	
 	lights.push_back({ {0,8,0},64 });
-	//lights.push_back({ {5,8,5} , 64 });
-	//lights.push_back({ {9.99,9.99,9.99},128 });
+	lights.push_back({ {5,8,5} , 64 });
+	lights.push_back({ {9.99,9.99,9.99},128 });
 
 	
 
@@ -1004,6 +900,7 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 
 		// start clock
+		begin = std::chrono::steady_clock::now();
 		
 
 		// clear the screen
@@ -1011,7 +908,6 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
-		begin = std::chrono::steady_clock::now();
 
 		// reset counter
 		castRayCalls = 0;
@@ -1025,26 +921,25 @@ int main() {
 		trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
 
 
-		// keep this just in case
-		for (int y = 0; y <height; y++) {
-			for (int x = 0; x < width; x++) {
-				getPixelData(x, y, width, height, data, trans, &camera);
-			}
-		}
-
-		//// parallelize to make it faster
-		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
-		//	[data,width,height,&camera,horizontal, trans
-		//	](int y) {
-		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
-		//			[horizontal,y,data,width,height,&camera, trans](int x) {
-		//				getPixelData(x, y, width, height, data, trans, &camera);
-		//			}
-		//		);
+		//// keep this just in case
+		//for (int y = 0; y <height; y++) {
+		//	for (int x = 0; x < width; x++) {
+		//		getPixelData(x, y, width, height, data, trans, &camera);
 		//	}
-		//);
+		//}
 
-		end = std::chrono::steady_clock::now();
+		// parallelize to make it faster
+		std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+			[data,width,height,&camera,horizontal, trans
+			](int y) {
+				std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+					[horizontal,y,data,width,height,&camera, trans](int x) {
+						getPixelData(x, y, width, height, data, trans, &camera);
+					}
+				);
+			}
+		);
+
 
 
 
@@ -1061,21 +956,25 @@ int main() {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
+		//std::cout << glm::to_string(camera.position) << "\n";
+
 		// move camera
 		camera.rotate(lleft, lright, lup, ldown);
 		camera.translate(left, right, up, down, forward, backward);
 
+		end = std::chrono::steady_clock::now();
 
 		// get delta time and frame data
 		milis = (end - begin).count() / 1000000.0;
-		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << " and had : " << castRayCalls << " castRay calls in this frame";
-		std::cout << " SoftCalls: " << softMathCalls << " HardCalls: " << hardMathCalls << " Frac: " << (float)hardMathCalls / (float)softMathCalls << "\n";
+		std::cout << "Time difference = " << milis << "[ms]" << " FPS: " << 1000.0 / milis << " and had : " << castRayCalls << " castRay calls in this frame\n";
+		//std::cout << " SoftCalls: " << softMathCalls << " HardCalls: " << hardMathCalls << " Frac: " << (float)hardMathCalls / (float)softMathCalls << "\n";
 
 
 
 		// convert miliseconds to a delta time
-		camera.moveSpeed = camera.moveBaseSpeed/milis;
-		camera.rotSpeed = camera.rotBaseSpeed/milis;
+		camera.moveSpeed = camera.moveBaseSpeed*milis;
+		camera.rotSpeed = camera.rotBaseSpeed*milis;
+		//std::cout << "Camera speed: " << camera.moveSpeed << "\n";
 	}
 
 	glfwTerminate();
