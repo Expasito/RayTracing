@@ -265,55 +265,16 @@ int softMathCalls = 0;
 int hardMathCalls = 0;
 
 
-void RowReduce(float A[][4])
-{
-	const int nrows = 3; // number of rows
-	const int ncols = 4; // number of columns
-
-	int lead = 0;
-
-	while (lead < nrows) {
-		float d, m;
-
-		for (int r = 0; r < nrows; r++) { // for each row ...
-			/* calculate divisor and multiplier */
-			d = A[lead][lead];
-			m = A[r][lead] / A[lead][lead];
-
-			for (int c = 0; c < ncols; c++) { // for each column ...
-				if (r == lead)
-					A[r][c] /= d;               // make pivot = 1
-				else
-					A[r][c] -= A[lead][c] * m;  // make other = 0
-			}
-		}
-
-		lead++;
-	}
-}
-
 PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
-	// add 1 to the counter
-	//castRayCalls += 1;
 	PayLoad closest = { {0,0,0},{0,0,0},1e9,NULL,false };
 	bool found = false;
 
 
-	// get the orthogonal basis
-
+	// get the orthogonal basis. Because of how cross products work with 0,0,-1 and 0,1,0, we can derive the crossed vectors using the formulas below
 	glm::vec3 x = (dir);
-	//glm::vec3 y = (glm::cross(dir, glm::vec3(0, 0, -1)));
 	glm::vec3 y = {-dir.y, dir.x, 0};
-	//glm::vec3 y = {2, -1, 0};
-	//glm::vec3 z = (glm::cross(x, y));
-	//glm::vec3 z = glm::cross(dir, glm::vec3(0, 1, 0));
 	glm::vec3 z = {-dir.z,0,dir.x};
 
-
-
-	//std::cout << "X: " << x << " Y: " << y << " Z: " << z << "\n";
-
-	//exit(1);
 
 	glm::mat3 B = { {x}, {y}, {z} };
 
@@ -330,20 +291,20 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 			continue;
 		}
 
-		softMathCalls++;
 
-		// put back at orgin
+		// put back at origin
 		glm::vec3 p1 = BInv * (triangle.p1-orgin);
 		glm::vec3 p2 = BInv * (triangle.p2-orgin);
 		glm::vec3 p3 = BInv * (triangle.p3-orgin);
-
+		
+		// check if not possible intersection
 		if ((p1.y > 0 && p2.y > 0 && p3.y > 0) ||
 			(p1.y < 0 && p2.y < 0 && p3.y < 0) ||
 			(p1.z > 0 && p2.z > 0 && p3.z > 0) ||
 			(p1.z < 0 && p2.z < 0 && p3.z < 0) ||
 			(p1.x < 0 && p2.x < 0 && p3.x < 0)
 			) {
-
+			// do nothing becuase no chance of intersection
 		}
 		else {
 			float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
@@ -351,9 +312,7 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 				continue;
 			}
 			glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-
-
-
+		
 			if (t < closest.distance && t > 0.00001) {
 				if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
 					dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
@@ -365,25 +324,6 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 			}
 		}
 
-		//if (p1.y>0 && p2.y > 0 && p3.y > 0) {
-		//	continue;
-		//}
-		//else if (p1.y < 0 && p2.y < 0 && p3.y < 0) {
-		//	continue;
-		//}
-		//else if (p1.z > 0 && p2.z > 0 && p3.z > 0) {
-		//	continue;
-		//}
-		//else if (p1.z < 0 && p2.z < 0 && p3.z < 0) {
-		//	continue;
-		//}
-		//else if (p1.x < 0 && p2.x < 0 && p3.x < 0) {
-		//	continue;
-		//}
-		//else {
-		//	
-		//}
-
 
 		
 	
@@ -391,21 +331,13 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 
 		//float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
-		// negative t values get filtered out already so do it now
+		//// //negative t values get filtered out already so do it now
 		//if (t < 0) {
-			//continue;
+		//	continue;
 		//}
-
+		//
 		//glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-
-		//closest = { I,triangle.color,t ,&triangle,true };
-		//found = true;
-
-		//hardMathCalls++;
-
-		//glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-
-
+		//
 		//if (t < closest.distance && t > 0.00001) {
 		//	if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
 		//		dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
@@ -485,23 +417,28 @@ glm::vec3 newNormal(glm::vec3 dir, glm::vec3 normal) {
 }
 
 float dot(glm::vec3 a, glm::vec3 b) {
-	//std::cout << "A: (" << a << ")" << "\n";
-	//std::cout << "B: (" << b  << ")" << "\n";
-	//std::cout << "COMP: " << a.x * b.x << " " << a.y * b.y << " " << a.z * b.z << "\n";
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 
 glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 	glm::vec3 color(0);
+
+	// these do not change between lights
+	glm::vec3 viewDir = glm::normalize(camera->position - hit.point);
+
+	// calculate diffuse
+	glm::vec3 norm = glm::normalize(hit.cur->n);
+
 	for (Light l : lights) {
-		PayLoad hit2 = castRay(hit.point, normalize(l.position - hit.point), hit.cur);
+
+		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
+		PayLoad hit2 = castRay(hit.point, lightDir, hit.cur);
 		// this is the distance from the light to the point we hit in castRay
 		float dist = magnitude(l.position - hit.point);
 
-		// calculate specular lighting
-		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
-		glm::vec3 viewDir = glm::normalize(camera->position - hit.point);
+
+		
 		glm::vec3 reflectDir = glm::reflect(-lightDir, hit.cur->n);
 		float shiny = 256;
 		float spec = pow(float(fmax(dot(viewDir, reflectDir), 0)), shiny);
@@ -516,8 +453,7 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 		}
 
 
-		// calculate diffuse
-		glm::vec3 norm = glm::normalize(hit.cur->n);
+		
 
 		float dot = fabs(glm::dot(lightDir, norm));
 		glm::vec3 col = hit.color;
@@ -554,20 +490,20 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 	// This is the output color
 	glm::vec3 color = glm::vec3(0);
 
-	if (hit.didHit == true) {
-		data[index] = hit.color.x;
-		data[index + 1] = hit.color.y;
-		data[index + 2] = hit.color.z;
-	}
-	else {
-		data[index] = 0;
-		data[index + 1] = 0;
-		data[index + 2] = 0;
-	}
+	//if (hit.didHit == true) {
+	//	data[index] = hit.color.x;
+	//	data[index + 1] = hit.color.y;
+	//	data[index + 2] = hit.color.z;
+	//}
+	//else {
+	//	data[index] = 0;
+	//	data[index + 1] = 0;
+	//	data[index + 2] = 0;
+	//}
 
 
 
-	return;
+	//return;
 
 	// If we hit, we need to check for shadows, else, just set to background color
 	// and also send out a bunch of other rays
@@ -581,10 +517,10 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 		// so now our new normal is normal:
 
 		// define the max bounces before we stop
-		int maxBounces = 1;
+		int maxBounces = 5;
 
 		// shiny object so reflect
-		if (hit.cur->shininess > .5 && false) {
+		if (hit.cur->shininess > .5) {
 			int bounces = 0;
 			glm::vec3 newDir = glm::normalize(glm::reflect(dir, normal));
 			PayLoad hitN1 = castRay(hit.point, newDir, hit.cur);
@@ -603,8 +539,7 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 				color = glm::vec3(color.x * dim, color.y * dim, color.z * dim);
 			}
 			else {
-				//std::cout << "Failed\n";
-				//exit(1);
+
 				color = glm::vec3(0, 0, 0);
 			}
 
@@ -729,8 +664,8 @@ int main() {
 
 	
 	lights.push_back({ {0,8,0},64 });
-	lights.push_back({ {5,8,5} , 64 });
-	lights.push_back({ {9.99,9.99,9.99},128 });
+	//lights.push_back({ {5,8,5} , 64 });
+	//lights.push_back({ {9.99,9.99,9.99},128 });
 
 	
 
