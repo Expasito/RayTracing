@@ -276,12 +276,16 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 	glm::vec3 z = {-dir.z,0,dir.x};
 
 
-	glm::mat3 B = { {x}, {y}, {z} };
+	//glm::mat3 B = { {x}, {y}, {z} };
 
 	// now get the inverse(transpose also works) so we can convert to our new coordinate system
 	//glm::mat3 BInv = glm::inverse(B);
-	glm::mat3 BInv = glm::transpose(B);
+	//glm::mat3 BInv = glm::transpose(B);
 
+
+	float dotZ = dot(z, z);
+	float dotY = dot(y, y);
+	float dotX = dot(x, x);
 
 
 
@@ -292,10 +296,24 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 		}
 
 
-		// put back at origin
-		glm::vec3 p1 = BInv * (triangle.p1-orgin);
-		glm::vec3 p2 = BInv * (triangle.p2-orgin);
-		glm::vec3 p3 = BInv * (triangle.p3-orgin);
+		//// put back at origin
+		//glm::vec3 p1 = BInv * (triangle.p1-orgin);
+		//glm::vec3 p2 = BInv * (triangle.p2-orgin);
+		//glm::vec3 p3 = BInv * (triangle.p3-orgin);
+
+		glm::vec3 tp1 = triangle.p1 - orgin;
+		glm::vec3 tp2 = triangle.p2 - orgin;
+		glm::vec3 tp3 = triangle.p3 - orgin;
+
+
+
+
+
+		glm::vec3 p1 = {glm::dot(tp1,x) / dotX,  glm::dot(tp1,y) / dotY,  glm::dot(tp1,z) / dotZ };
+		glm::vec3 p2 = {glm::dot(tp2,x) / dotX,  glm::dot(tp2,y) / dotY,  glm::dot(tp2,z) / dotZ };
+		glm::vec3 p3 = {glm::dot(tp3,x) / dotX,  glm::dot(tp3,y) / dotY,  glm::dot(tp3,z) / dotZ };
+
+
 		
 		// check if not possible intersection
 		if ((p1.y > 0 && p2.y > 0 && p3.y > 0) ||
