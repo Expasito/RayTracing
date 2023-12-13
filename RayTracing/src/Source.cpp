@@ -266,7 +266,7 @@ int hardMathCalls = 0;
 
 
 PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
-	PayLoad closest = { {0,0,0},{0,0,0},1e9,NULL,false };
+	PayLoad closest = { {0,0,0},{0,0,0}, 1e9, NULL, false };
 	bool found = false;
 
 
@@ -453,12 +453,13 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
 		PayLoad hit2 = castRay(hit.point, lightDir, hit.cur);
 		// this is the distance from the light to the point we hit in castRay
-		float dist = magnitude(l.position - hit.point);
+		float dist = magnitude(l.position - hit2.point);
+
 
 
 		
 		glm::vec3 reflectDir = glm::reflect(-lightDir, hit.cur->n);
-		float shiny = 256;
+		float shiny = 128;
 		float spec = pow(float(fmax(dot(viewDir, reflectDir), 0)), shiny);
 
 		glm::vec3 specular = (spec * glm::vec3(128, 128, 128));
@@ -474,9 +475,10 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 		
 
 		float dot = fabs(glm::dot(lightDir, norm));
-		glm::vec3 col = hit.color;
+		glm::vec3 col = 1.0f/(dist) * hit.color;
 		color += (col * dot + specular) * (1-shadow);
 
+		//color += (col);
 
 
 	}
@@ -508,20 +510,6 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 	// This is the output color
 	glm::vec3 color = glm::vec3(0);
 
-	//if (hit.didHit == true) {
-	//	data[index] = hit.color.x;
-	//	data[index + 1] = hit.color.y;
-	//	data[index + 2] = hit.color.z;
-	//}
-	//else {
-	//	data[index] = 0;
-	//	data[index + 1] = 0;
-	//	data[index + 2] = 0;
-	//}
-
-
-
-	//return;
 
 	// If we hit, we need to check for shadows, else, just set to background color
 	// and also send out a bunch of other rays
@@ -535,7 +523,7 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 		// so now our new normal is normal:
 
 		// define the max bounces before we stop
-		int maxBounces = 5;
+		int maxBounces = 1;
 
 		// shiny object so reflect
 		if (hit.cur->shininess > .5) {
@@ -627,7 +615,84 @@ void loadModel(const char* path) {
 
 }
 
+class Edge;
+class Node;
+
+
+class Node {
+
+
+public:
+	std::vector<Edge*>* edges;
+	const char* name;
+	short visited;
+	Node(const char* name_) {
+		name = name_;
+		edges = new std::vector<Edge*>();
+		visited = 0;
+	}
+
+	~Node() {
+		delete edges;
+	}
+
+	void addEdge(Node* to, float weight) {
+		edges->push_back(new Edge(weight, this,to));
+	}
+private:
+
+
+};
+
+class Edge {
+public:
+	float weight;
+	Node* start;
+	Node* end;
+
+
+	Edge(float weight, Node* start_, Node* end_) {
+		this->weight = weight;
+		start = start_;
+		end = end_;
+	}
+};
+
+void BFS(Node* start) {
+	std::vector<Node*> queue;
+
+
+	queue.push_back(start);
+
+	while (queue.size() != 0) {
+		Node* q = queue.erase(queue.begin())[0];
+		std::cout << q->name << "\n";
+		q->visited = 1;
+
+		for (int i = 0; i < q->edges->size();i++) {
+			Edge* e = q->edges->at(i);
+			if (e->end->visited == 0) {
+				queue.push_back(e->end);
+			}
+
+		}
+	}
+}
+
 int main() {
+
+	Node n("Hello");
+
+
+	Node n2("Bye");
+
+	n.addEdge(&n2, 10.0f);
+	n2.addEdge(&n, 10.0f);
+
+	BFS(&n);
+
+
+	exit(1);
 
 
 	// make camera a public variable
@@ -681,7 +746,7 @@ int main() {
 
 
 	
-	lights.push_back({ {0,8,0},64 });
+	lights.push_back({ {0,8,0},512 });
 	//lights.push_back({ {5,8,5} , 64 });
 	//lights.push_back({ {9.99,9.99,9.99},128 });
 
