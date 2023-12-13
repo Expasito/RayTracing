@@ -618,6 +618,19 @@ void loadModel(const char* path) {
 class Edge;
 class Node;
 
+class Edge {
+public:
+	float weight;
+	Node* start;
+	Node* end;
+
+
+	Edge(float weight, Node* start_, Node* end_) {
+		this->weight = weight;
+		start = start_;
+		end = end_;
+	}
+};
 
 class Node {
 
@@ -639,55 +652,85 @@ public:
 	void addEdge(Node* to, float weight) {
 		edges->push_back(new Edge(weight, this,to));
 	}
+
+	void log() {
+		std::cout << "Node: " << this->name << " :: [ ";
+		for (int i = 0; i < edges->size(); i++) {
+			Edge* e = edges->at(i);
+			std::cout << "(" <<  e->end->name << " : " << e->end->visited << " :: " << e->weight << "),  ";
+		}
+		std::cout << "]\n\n";
+	}
 private:
 
 
 };
 
-class Edge {
-public:
-	float weight;
-	Node* start;
-	Node* end;
 
-
-	Edge(float weight, Node* start_, Node* end_) {
-		this->weight = weight;
-		start = start_;
-		end = end_;
-	}
-};
 
 void BFS(Node* start) {
-	std::vector<Node*> queue;
+	std::queue<Node*> queue;
+
+	std::cout << "\n\n\nSTART BFS:\n";
 
 
-	queue.push_back(start);
+	queue.push(start);
 
 	while (queue.size() != 0) {
-		Node* q = queue.erase(queue.begin())[0];
-		std::cout << q->name << "\n";
+		Node* q = queue.front();
+		queue.pop();
+		if (q->visited == 1) {
+			continue;
+		}
+
+		std::cout << "VISITNG: " << q->name << " : " << q->visited << "\n";
 		q->visited = 1;
 
 		for (int i = 0; i < q->edges->size();i++) {
 			Edge* e = q->edges->at(i);
-			if (e->end->visited == 0) {
-				queue.push_back(e->end);
+			Node* end = (Node*)e->end;
+			std::cout << "     ";
+			end->log();
+			//std::cout << "     " << end->name << " : " << end->visited << "\n";
+			if (end->visited == 0) {
+				std::cout << "Adding: " << end->name << "\n";
+				queue.push(end);
 			}
 
 		}
 	}
 }
 
+void addEdge(Node* one, Node* two, float weight) {
+	one->addEdge(two, weight);
+	two->addEdge(one, weight);
+}
+
 int main() {
 
-	Node n("Hello");
+	Node n("One");
 
 
-	Node n2("Bye");
+	Node n2("Two");
 
-	n.addEdge(&n2, 10.0f);
-	n2.addEdge(&n, 10.0f);
+	Node n3("Three");
+
+	Node n4("Four");
+
+	Node n5("Five");
+
+
+	
+	addEdge(&n, &n2, 10.0f);
+	addEdge(&n2, &n3, 20.0f);
+	addEdge(&n3, &n4, 5.0f);
+	addEdge(&n, &n5, 15.0f);
+
+	n.log();
+	n2.log();
+	n3.log();
+	n4.log();
+	n5.log();
 
 	BFS(&n);
 
