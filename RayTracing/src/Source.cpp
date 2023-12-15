@@ -55,7 +55,12 @@ struct Triangle {
 	}
 
 };
+
+// keep track of all triangles possible
 std::vector<Triangle> triangles;
+
+// keep track of the trianlges that are visible to be hit
+std::vector<Triangle> visibleTriangles;
 
 struct Light {
 	glm::vec3 position;
@@ -620,13 +625,15 @@ class Node;
 
 class Edge {
 public:
-	float weight;
+	float weightX;
+	float weightY;
 	Node* start;
 	Node* end;
 
 
-	Edge(float weight, Node* start_, Node* end_) {
-		this->weight = weight;
+	Edge(float weightX_, float weightY_, Node* start_, Node* end_) {
+		weightX = weightX_;
+		weightY = weightY_;
 		start = start_;
 		end = end_;
 	}
@@ -649,15 +656,15 @@ public:
 		delete edges;
 	}
 
-	void addEdge(Node* to, float weight) {
-		edges->push_back(new Edge(weight, this,to));
+	void addEdge(Node* to, float weightX, float weightY) {
+		edges->push_back(new Edge(weightX, weightY, this,to));
 	}
 
 	void log() {
 		std::cout << "Node: " << this->name << " :: [ ";
 		for (int i = 0; i < edges->size(); i++) {
 			Edge* e = edges->at(i);
-			std::cout << "(" <<  e->end->name << " : " << e->end->visited << " :: " << e->weight << "),  ";
+			std::cout << "(" <<  e->end->name << " : " << e->end->visited << " :: " << e->weightX << ", " << e->weightY << "),  ";
 		}
 		std::cout << "]\n\n";
 	}
@@ -670,6 +677,8 @@ private:
 
 void BFS(Node* start) {
 	std::queue<Node*> queue;
+	//std::priority_queue<Node*> queue;
+
 
 	std::cout << "\n\n\nSTART BFS:\n";
 
@@ -677,6 +686,7 @@ void BFS(Node* start) {
 	queue.push(start);
 
 	while (queue.size() != 0) {
+		//Node* q = queue.top();
 		Node* q = queue.front();
 		queue.pop();
 		if (q->visited == 1) {
@@ -689,11 +699,11 @@ void BFS(Node* start) {
 		for (int i = 0; i < q->edges->size();i++) {
 			Edge* e = q->edges->at(i);
 			Node* end = (Node*)e->end;
-			std::cout << "     ";
-			end->log();
+			//std::cout << "     ";
+			//end->log();
 			//std::cout << "     " << end->name << " : " << end->visited << "\n";
 			if (end->visited == 0) {
-				std::cout << "Adding: " << end->name << "\n";
+				//std::cout << "Adding: " << end->name << "\n";
 				queue.push(end);
 			}
 
@@ -701,12 +711,39 @@ void BFS(Node* start) {
 	}
 }
 
-void addEdge(Node* one, Node* two, float weight) {
-	one->addEdge(two, weight);
-	two->addEdge(one, weight);
+void addEdge(Node* one, Node* two, float weightX, float weightY) {
+	one->addEdge(two, weightX, weightY);
+	two->addEdge(one, weightX, weightY);
 }
 
+struct
+{
+	bool operator()(const int l, const int r) const { return l > r; }
+} customLess;
+
 int main() {
+
+
+	std::priority_queue<std::pair<int, int>> pq;
+
+	pq.push(std::pair<int, int>(1, 4));
+	pq.push(std::pair<int, int>(2, 4));
+	pq.push(std::pair<int, int>(1, 5));
+	pq.push(std::pair<int, int>(2, 5));
+
+
+
+
+	while (pq.empty() == false) {
+		std::pair<int, int> p = pq.top();
+		pq.pop();
+
+		std::cout << p.first << " " << p.second << "\n";
+	}
+
+
+
+	exit(1);
 
 	Node n("One");
 
@@ -721,10 +758,10 @@ int main() {
 
 
 	
-	addEdge(&n, &n2, 10.0f);
-	addEdge(&n2, &n3, 20.0f);
-	addEdge(&n3, &n4, 5.0f);
-	addEdge(&n, &n5, 15.0f);
+	addEdge(&n, &n2, 10.0f, 10.0f);
+	addEdge(&n2, &n3, 20.0f, 20.0f);
+	addEdge(&n3, &n4, 5.0f, 5.0f);
+	addEdge(&n, &n5, 15.0f, 15.0f);
 
 	n.log();
 	n2.log();
@@ -980,6 +1017,18 @@ int main() {
 		glm::mat4 trans = glm::mat4(1.0f);
 		trans = glm::rotate(trans, glm::radians((float)camera.rotations.x), glm::vec3(0.0f, 1.0f, 0.0f));
 		trans = glm::rotate(trans, glm::radians(-(float)camera.rotations.y), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		
+		// now load triangle data
+
+		// remove all previous triangles
+		visibleTriangles.clear();
+
+		// now filter and add
+		
+		for (Triangle t : triangles) {
+			visibleTriangles.push_back(t);
+		}
 
 
 		//// keep this just in case
