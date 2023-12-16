@@ -294,11 +294,36 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 
 
-	for (Triangle& triangle : triangles) {
+	for (Triangle& triangle : visibleTriangles) {
 		if (&triangle == curr) {
 			// skip the matched one if curr is a Triangle*
 			continue;
 		}
+
+
+		// figure out the dot product for each point to the direction
+		// if its negative then the traignle should not be visible so we can skip
+		//float a = dot(glm::normalize(triangle.p1-orgin), glm::normalize(dir));
+		//float b = dot(glm::normalize(triangle.p2-orgin), glm::normalize(dir));
+		//float c = dot(glm::normalize(triangle.p3-orgin), glm::normalize(dir));
+
+		// get adjusted triangle coordinates
+		glm::vec3 tp1 = triangle.p1 - orgin;
+		glm::vec3 tp2 = triangle.p2 - orgin;
+		glm::vec3 tp3 = triangle.p3 - orgin;
+
+
+		// see how close the trianlge is to the ray
+		float a = dot(glm::normalize(tp1), glm::normalize(dir));
+		float b = dot(glm::normalize(tp2), glm::normalize(dir));
+		float c = dot(glm::normalize(tp3), glm::normalize(dir));
+
+		if (a < .5 && b < 0.5 && c < 0.5) {
+			castRayCalls++;
+			//std::cout << "SKIPPING!\n";
+			continue;
+		}
+
 
 
 		//// put back at origin
@@ -306,9 +331,7 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 		//glm::vec3 p2 = BInv * (triangle.p2-orgin);
 		//glm::vec3 p3 = BInv * (triangle.p3-orgin);
 
-		glm::vec3 tp1 = triangle.p1 - orgin;
-		glm::vec3 tp2 = triangle.p2 - orgin;
-		glm::vec3 tp3 = triangle.p3 - orgin;
+		
 
 
 
@@ -330,7 +353,7 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 			// do nothing becuase no chance of intersection
 		}
 		else {
-			float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
+			float t = dot(tp1, triangle.n) / dot(dir, triangle.n);
 			if (t < 0) {
 				continue;
 			}
@@ -454,6 +477,9 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 	glm::vec3 norm = glm::normalize(hit.cur->n);
 
 	for (Light l : lights) {
+
+		color += (l.intensity * hit.color);
+		continue;
 
 		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
 		PayLoad hit2 = castRay(hit.point, lightDir, hit.cur);
@@ -743,7 +769,7 @@ int main() {
 
 
 
-	exit(1);
+	//exit(1);
 
 	Node n("One");
 
@@ -772,7 +798,7 @@ int main() {
 	BFS(&n);
 
 
-	exit(1);
+	//exit(1);
 
 
 	// make camera a public variable
@@ -993,7 +1019,10 @@ int main() {
 	// For performance, we will update either the top or bottom per frame
 	bool writeTop = false;
 
-
+	// keep track of which triangle we are on
+	int cntr = 0;
+	
+	
 	// now for the run loop
 	while (!glfwWindowShouldClose(window)) {
 
@@ -1024,31 +1053,35 @@ int main() {
 		// remove all previous triangles
 		visibleTriangles.clear();
 
+
 		// now filter and add
-		
-		for (Triangle t : triangles) {
+		for (Triangle& const t: triangles) {
+			cntr++;
+			/*if (cntr > 1) {
+				cntr = 0;
+			}*/
 			visibleTriangles.push_back(t);
 		}
 
 
-		//// keep this just in case
-		//for (int y = 0; y <height; y++) {
-		//	for (int x = 0; x < width; x++) {
-		//		getPixelData(x, y, width, height, data, trans, &camera);
-		//	}
-		//}
+		// keep this just in case
+		for (int y = 0; y <height; y++) {
+			for (int x = 0; x < width; x++) {
+				getPixelData(x, y, width, height, data, trans, &camera);
+			}
+		}
 
 		// parallelize to make it faster
-		std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
-			[data,width,height,&camera,horizontal, trans
-			](int y) {
-				std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
-					[horizontal,y,data,width,height,&camera, trans](int x) {
-						getPixelData(x, y, width, height, data, trans, &camera);
-					}
-				);
-			}
-		);
+		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+		//	[data,width,height,&camera,horizontal, trans
+		//	](int y) {
+		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+		//			[horizontal,y,data,width,height,&camera, trans](int x) {
+		//				getPixelData(x, y, width, height, data, trans, &camera);
+		//			}
+		//		);
+		//	}
+		//);
 
 
 
