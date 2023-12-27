@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include "Utils.h"
 #include <iostream>
 #include <iostream>
 #include <string>
@@ -14,6 +15,8 @@
 #include <glm/gtx/string_cast.hpp>
 #include <algorithm>
 #include <execution>
+
+
 
 
 
@@ -276,9 +279,9 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 
 	// get the orthogonal basis. Because of how cross products work with 0,0,-1 and 0,1,0, we can derive the crossed vectors using the formulas below
-	glm::vec3 x = (dir);
-	glm::vec3 y = {-dir.y, dir.x, 0};
-	glm::vec3 z = {-dir.z,0,dir.x};
+	//glm::vec3 x = (dir);
+	//glm::vec3 y = {-dir.y, dir.x, 0};
+	//glm::vec3 z = {-dir.z,0,dir.x};
 
 
 	//glm::mat3 B = { {x}, {y}, {z} };
@@ -288,9 +291,9 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 	//glm::mat3 BInv = glm::transpose(B);
 
 
-	float dotZ = dot(z, z);
-	float dotY = dot(y, y);
-	float dotX = dot(x, x);
+	//float dotZ = dot(z, z);
+	//float dotY = dot(y, y);
+	//float dotX = dot(x, x);
 
 
 
@@ -307,22 +310,22 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 		//float b = dot(glm::normalize(triangle.p2-orgin), glm::normalize(dir));
 		//float c = dot(glm::normalize(triangle.p3-orgin), glm::normalize(dir));
 
-		// get adjusted triangle coordinates
-		glm::vec3 tp1 = triangle.p1 - orgin;
-		glm::vec3 tp2 = triangle.p2 - orgin;
-		glm::vec3 tp3 = triangle.p3 - orgin;
+		//// get adjusted triangle coordinates
+		//glm::vec3 tp1 = triangle.p1 - orgin;
+		//glm::vec3 tp2 = triangle.p2 - orgin;
+		//glm::vec3 tp3 = triangle.p3 - orgin;
 
 
-		// see how close the trianlge is to the ray
-		float a = dot(glm::normalize(tp1), glm::normalize(dir));
-		float b = dot(glm::normalize(tp2), glm::normalize(dir));
-		float c = dot(glm::normalize(tp3), glm::normalize(dir));
+		//// see how close the trianlge is to the ray
+		//float a = dot(glm::normalize(tp1), glm::normalize(dir));
+		//float b = dot(glm::normalize(tp2), glm::normalize(dir));
+		//float c = dot(glm::normalize(tp3), glm::normalize(dir));
 
-		if (a < .5 && b < 0.5 && c < 0.5) {
-			castRayCalls++;
-			//std::cout << "SKIPPING!\n";
-			continue;
-		}
+		//if (a < .5 && b < 0.5 && c < 0.5) {
+		//	castRayCalls++;
+		//	//std::cout << "SKIPPING!\n";
+		//	continue;
+		//}
 
 
 
@@ -337,38 +340,38 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 
 
-		glm::vec3 p1 = {glm::dot(tp1,x) / dotX,  glm::dot(tp1,y) / dotY,  glm::dot(tp1,z) / dotZ };
-		glm::vec3 p2 = {glm::dot(tp2,x) / dotX,  glm::dot(tp2,y) / dotY,  glm::dot(tp2,z) / dotZ };
-		glm::vec3 p3 = {glm::dot(tp3,x) / dotX,  glm::dot(tp3,y) / dotY,  glm::dot(tp3,z) / dotZ };
+		//glm::vec3 p1 = {glm::dot(tp1,x) / dotX,  glm::dot(tp1,y) / dotY,  glm::dot(tp1,z) / dotZ };
+		//glm::vec3 p2 = {glm::dot(tp2,x) / dotX,  glm::dot(tp2,y) / dotY,  glm::dot(tp2,z) / dotZ };
+		//glm::vec3 p3 = {glm::dot(tp3,x) / dotX,  glm::dot(tp3,y) / dotY,  glm::dot(tp3,z) / dotZ };
 
 
 		
-		// check if not possible intersection
-		if ((p1.y > 0 && p2.y > 0 && p3.y > 0) ||
-			(p1.y < 0 && p2.y < 0 && p3.y < 0) ||
-			(p1.z > 0 && p2.z > 0 && p3.z > 0) ||
-			(p1.z < 0 && p2.z < 0 && p3.z < 0) ||
-			(p1.x < 0 && p2.x < 0 && p3.x < 0)
-			) {
-			// do nothing becuase no chance of intersection
-		}
-		else {
-			float t = dot(tp1, triangle.n) / dot(dir, triangle.n);
-			if (t < 0) {
-				continue;
-			}
-			glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-		
-			if (t < closest.distance && t > 0.00001) {
-				if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
-					dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
-					dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
-					) {
-					closest = { I,triangle.color,t ,&triangle,true };
-					found = true;
-				}
-			}
-		}
+		//// check if not possible intersection
+		//if ((p1.y > 0 && p2.y > 0 && p3.y > 0) ||
+		//	(p1.y < 0 && p2.y < 0 && p3.y < 0) ||
+		//	(p1.z > 0 && p2.z > 0 && p3.z > 0) ||
+		//	(p1.z < 0 && p2.z < 0 && p3.z < 0) ||
+		//	(p1.x < 0 && p2.x < 0 && p3.x < 0)
+		//	) {
+		//	// do nothing becuase no chance of intersection
+		//}
+		//else {
+		//	float t = dot(tp1, triangle.n) / dot(dir, triangle.n);
+		//	if (t < 0) {
+		//		continue;
+		//	}
+		//	glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+		//
+		//	if (t < closest.distance && t > 0.00001) {
+		//		if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
+		//			dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
+		//			dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
+		//			) {
+		//			closest = { I,triangle.color,t ,&triangle,true };
+		//			found = true;
+		//		}
+		//	}
+		//}
 
 
 		
@@ -376,23 +379,23 @@ PayLoad castRay(glm::vec3 orgin, glm::vec3 dir, Triangle* curr) {
 
 
 
-		//float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
-		//// //negative t values get filtered out already so do it now
-		//if (t < 0) {
-		//	continue;
-		//}
-		//
-		//glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
-		//
-		//if (t < closest.distance && t > 0.00001) {
-		//	if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
-		//		dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
-		//		dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
-		//		) {
-		//		closest = { I,triangle.color,t ,&triangle,true };
-		//		found = true;
-		//	}
-		//}
+		float t = dot(triangle.p1 - orgin, triangle.n) / dot(dir, triangle.n);
+		// //negative t values get filtered out already so do it now
+		if (t < 0) {
+			continue;
+		}
+		
+		glm::vec3 I = { orgin.x + t * dir.x,orgin.y + t * dir.y,orgin.z + t * dir.z };
+		
+		if (t < closest.distance && t > 0.00001) {
+			if (dot(triangle.n, cross(triangle.edge0, { I - triangle.p1 })) > 0.0 &&
+				dot(triangle.n, cross(triangle.edge1, { I - triangle.p2 })) > 0.0 &&
+				dot(triangle.n, cross(triangle.edge2, { I - triangle.p3 })) > 0.0
+				) {
+				closest = { I,triangle.color,t ,&triangle,true };
+				found = true;
+			}
+		}
 
 		
 	}
@@ -521,8 +524,8 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 	glm::vec3 dir, origin;
 
 	// convert camera plane pixel to into a range
-	float v = (y - height / 2) / (float)height;
-	float u = (x - width / 2) / (float)width;
+	float v = (y - height / 2.0) / (float)height;
+	float u = (x - width / 2.0) / (float)width;
 
 
 	// figure out where our pixel is based on the transform matrix
@@ -747,6 +750,28 @@ struct
 	bool operator()(const int l, const int r) const { return l > r; }
 } customLess;
 
+
+// just raw strings, very simple shaders so will leave as a long string
+const char* vertexShaderSource = "#version 330 core\n"
+"layout (location = 0) in vec3 pos;\n"
+"layout (location = 1) in vec2 textCoord;\n"
+
+"out vec2 TexCord;\n"
+"void main()\n"
+"{\n"
+"   TexCord=textCoord;\n"
+"   gl_Position = vec4(pos,1);\n"
+"}\0";
+const char* fragmentShaderSource = "#version 330 core\n"
+"out vec4 FragColor;\n"
+"in vec2 TexCord;\n"
+"uniform sampler2D texture1;\n"
+"void main()\n"
+"{\n"
+"   FragColor = texture(texture1,TexCord);\n"
+"}\n\0";
+
+
 int main() {
 
 
@@ -789,13 +814,13 @@ int main() {
 	addEdge(&n3, &n4, 5.0f, 5.0f);
 	addEdge(&n, &n5, 15.0f, 15.0f);
 
-	n.log();
-	n2.log();
-	n3.log();
-	n4.log();
-	n5.log();
+	//n.log();
+	//n2.log();
+	//n3.log();
+	//n4.log();
+	//n5.log();
 
-	BFS(&n);
+	//BFS(&n);
 
 
 	//exit(1);
@@ -891,52 +916,115 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetKeyCallback(window, keycallback);
 
-	// just raw strings, very simple shaders so will leave as a long string
-	const char* vertexShaderSource = "#version 330 core\n"
-		"layout (location = 0) in vec3 pos;\n"
-		"layout (location = 1) in vec2 textCoord;\n"
-
-		"out vec2 TexCord;\n"
-		"void main()\n"
-		"{\n"
-		"   TexCord=textCoord;\n"
-		"   gl_Position = vec4(pos,1);\n"
-		"}\0";
-	const char* fragmentShaderSource = "#version 330 core\n"
-		"out vec4 FragColor;\n"
-		"in vec2 TexCord;\n"
-		"uniform sampler2D texture1;\n"
-		"void main()\n"
-		"{\n"
-		"   FragColor = texture(texture1,TexCord);\n"
-		"}\n\0";
 
 
-	unsigned int vertexShader;
-	unsigned int fragmentShader;
-	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(vertexShader);
-	glCompileShader(fragmentShader);
+	//
+	//
+	//
+	//
+	//
 
-	int result;
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &result);
-	shaderBuildStatus(vertexShader, result);
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &result);
-	shaderBuildStatus(fragmentShader, result);
 
-	unsigned int program;
-	program = glCreateProgram();
-	glAttachShader(program, vertexShader);
-	glAttachShader(program, fragmentShader);
-	glLinkProgram(program);
+	char* shaderCode = (char*)malloc(sizeof(char) * 2000);
+	FILE* f = fopen("src/Compute.shader", "r");
 
-	glUseProgram(program);
+	char ch;
+	int err;
+	int ind = 0;
+	while (true) {
+		err = fscanf(f, "%c", &ch);
+		if (err == -1) {
+			break;
+		}
+		//printf("%c", ch);
+		shaderCode[ind] = ch;
+		ind++;
+	}
+	shaderCode[ind] = '\n';
+	ind++;
+	shaderCode[ind] = 0;
 
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+
+	printf("%s", shaderCode);
+	//exit(1);
+
+	// create all shaders
+	uint32_t compute = genShader(GL_COMPUTE_SHADER, &shaderCode);
+	uint32_t vertex = genShader(GL_VERTEX_SHADER, (char**)(& vertexShaderSource));
+	uint32_t fragment = genShader(GL_FRAGMENT_SHADER, (char**)(& fragmentShaderSource));
+
+	// create the program based on the shaders provided
+	//std::vector<uint32_t> shaders;
+	//shaders.push_back(compute);
+	//shaders.push_back(vertex);
+	//shaders.push_back(fragment);
+	uint32_t programCompute = genProgram({compute});
+	uint32_t programRender = genProgram({vertex, fragment});
+	//program = glCreateProgram();
+	//glAttachShader(program, compute);
+	//glAttachShader(program, vertex);
+	//glAttachShader(program, fragment);
+
+
+	//glLinkProgram(programCompute);
+	glUseProgram(programCompute);
+	//std::cout << program << "\n";
+
+	//exit(1);
+
+
+	const int twidth = 800;
+	const int theight = 800;
+
+
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, twidth, theight, 0, GL_RGBA,
+		GL_FLOAT, NULL);
+
+	glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+	glUseProgram(programCompute);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glDispatchCompute((uint32_t)twidth, (uint32_t)theight, 1);
+
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	//float test[twidth * theight*4];
+	////glGetTexImage(0, 0, GL_RGBA32F, GL_FLOAT, sizeof(float) * 99, test);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, test);
+	////exit(1);
+
+	//for (int i = 0; i < twidth*theight*4; i+=4) {
+	//	std::cout << test[i] << " " << test[i+1] << " " << test[i+2] << " " << test[i+3] << "\n";
+	//}
+	//exit(1);
+
+	//exit(1);
+
+	//glDispatchCompute(10, 10, 1);
+
+
+
+	//
+	//
+	//
+	//
+	//
+
+
+	glUseProgram(programRender);
 
 	unsigned int VAO;
 	glGenVertexArrays(1, &VAO);
@@ -982,11 +1070,11 @@ int main() {
 
 
 
-	unsigned int texture;
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	//unsigned int texture;
+	//glGenTextures(1, &texture);
+	//glBindTexture(GL_TEXTURE_2D, texture);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 
 	glGenerateMipmap(GL_TEXTURE_2D);
@@ -1064,12 +1152,12 @@ int main() {
 		}
 
 
-		// keep this just in case
-		for (int y = 0; y <height; y++) {
-			for (int x = 0; x < width; x++) {
-				getPixelData(x, y, width, height, data, trans, &camera);
-			}
-		}
+		//// keep this just in case
+		//for (int y = 0; y <height; y++) {
+		//	for (int x = 0; x < width; x++) {
+		//		getPixelData(x, y, width, height, data, trans, &camera);
+		//	}
+		//}
 
 		// parallelize to make it faster
 		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
@@ -1083,6 +1171,20 @@ int main() {
 		//	}
 		//);
 
+		glUseProgram(programCompute);
+
+		glUniform1f(glGetUniformLocation(programCompute, "testFloat"), 2.0f);
+		glUniform3f(glGetUniformLocation(programCompute, "triangle.point"), .25f, .5f, 1.0f);
+
+
+		glDispatchCompute((uint32_t)twidth, (uint32_t)theight, 1);
+
+
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		glUseProgram(programRender);
+		
+
 
 
 
@@ -1091,7 +1193,7 @@ int main() {
 
 		// update image for opengl to draw
 		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		// draw image

@@ -24,6 +24,9 @@
     <ClCompile Include="Depend\include\glad\glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\Image.txt" />
@@ -452,6 +455,7 @@
     </None>
     <None Include="src\cube.stl" />
     <None Include="src\cube.rto" />
+    <None Include="src\Compute.shader" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="Depend\lib\glfw3.lib" />
@@ -1327,6 +1331,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Depend\include\KHR\khrplatform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

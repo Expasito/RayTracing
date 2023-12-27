@@ -144,6 +144,7 @@
     <ClCompile Include="Depend\include\glad\glad.c" />
     <ClCompile Include="Depend\include\glm\detail\glm.cpp" />
     <ClCompile Include="src\Source.cpp" />
+    <ClCompile Include="src\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\Image.txt" />
@@ -291,6 +292,7 @@
     <None Include="Depend\lib\glfw3.dll" />
     <None Include="shaders\fragment.shader" />
     <None Include="shaders\vertex.shader" />
+    <None Include="src\Compute.shader" />
     <None Include="src\cube.rto" />
     <None Include="src\cube.stl" />
     <None Include="src\Image.ppm" />
@@ -591,6 +593,7 @@
     <ClInclude Include="Depend\include\glm\vec4.hpp" />
     <ClInclude Include="Depend\include\glm\vector_relational.hpp" />
     <ClInclude Include="Depend\include\KHR\khrplatform.h" />
+    <ClInclude Include="src\Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
