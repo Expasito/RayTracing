@@ -15,6 +15,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <algorithm>
 #include <execution>
+#include <glm/gtc/type_ptr.hpp>
 
 
 
@@ -827,11 +828,12 @@ int main() {
 
 
 	// make camera a public variable
-	Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
+	//Camera camera(glm::vec3(-10, 0, -10), glm::vec3(45, 0, 45));
 	//Camera camera(glm::vec3(0, 0, -2), glm::vec3(0, 0, 0));
-	//Camera camera(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0));
+	Camera camera(glm::vec3(0, 0, -2), glm::vec3(0, 0, 0));
 
 
+	addTriangle({0,0,0}, {0,0,0}, {1,1,1}, {255,255,255}, 0);
 
 	// wall along z axis
 	addTriangle({0,0,10 }, { 0,0,0 }, { 10,10,10 }, {255,0,0}, 0);
@@ -925,7 +927,7 @@ int main() {
 	//
 
 
-	char* shaderCode = (char*)malloc(sizeof(char) * 2000);
+	char* shaderCode = (char*)malloc(sizeof(char) * 10000);
 	FILE* f = fopen("src/Compute.shader", "r");
 
 	char ch;
@@ -1109,6 +1111,8 @@ int main() {
 
 	// keep track of which triangle we are on
 	int cntr = 0;
+
+	float counter = 0.0f;
 	
 	
 	// now for the run loop
@@ -1152,37 +1156,102 @@ int main() {
 		}
 
 
-		//// keep this just in case
-		//for (int y = 0; y <height; y++) {
-		//	for (int x = 0; x < width; x++) {
-		//		getPixelData(x, y, width, height, data, trans, &camera);
-		//	}
-		//}
+		bool GPU = true;
 
-		// parallelize to make it faster
-		//std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
-		//	[data,width,height,&camera,horizontal, trans
-		//	](int y) {
-		//		std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
-		//			[horizontal,y,data,width,height,&camera, trans](int x) {
-		//				getPixelData(x, y, width, height, data, trans, &camera);
-		//			}
-		//		);
-		//	}
-		//);
-
-		glUseProgram(programCompute);
-
-		glUniform1f(glGetUniformLocation(programCompute, "testFloat"), 2.0f);
-		glUniform3f(glGetUniformLocation(programCompute, "triangle.point"), .25f, .5f, 1.0f);
+		if (GPU) {
 
 
-		glDispatchCompute((uint32_t)twidth, (uint32_t)theight, 1);
+
+			glUseProgram(programCompute);
+
+			glUniform1f(glGetUniformLocation(programCompute, "testFloat"), counter);
+
+			for (int i = 0; i < triangles.size(); i++) {
+				Triangle triangle = triangles.at(i);
+				std::string name = "triangle[" + std::to_string(i) + "].";
+
+				// send over triangle
+				glUniform3fv(glGetUniformLocation(programCompute, (name +"p").c_str()), 1, glm::value_ptr(triangle.p));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "n").c_str()), 1, glm::value_ptr(triangle.n));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "p1").c_str()), 1, glm::value_ptr(triangle.p1));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "p2").c_str()), 1, glm::value_ptr(triangle.p2));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "p3").c_str()), 1, glm::value_ptr(triangle.p3));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "edge0").c_str()), 1, glm::value_ptr(triangle.edge0));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "edge1").c_str()), 1, glm::value_ptr(triangle.edge1));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "edge2").c_str()), 1, glm::value_ptr(triangle.edge2));
+				glUniform3fv(glGetUniformLocation(programCompute, (name + "color").c_str()), 1, glm::value_ptr(triangle.color));
+
+			}
+
+			glUniform1i(glGetUniformLocation(programCompute, "numTriangles"), triangles.size());
+
+			//// send over triangle
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].p"), 1, glm::value_ptr(triangles.at(0).p));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].n"), 1, glm::value_ptr(triangles.at(0).n));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].p1"), 1, glm::value_ptr(triangles.at(0).p1));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].p2"), 1, glm::value_ptr(triangles.at(0).p2));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].p3"), 1, glm::value_ptr(triangles.at(0).p3));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].edge0"), 1, glm::value_ptr(triangles.at(0).edge0));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].edge1"), 1, glm::value_ptr(triangles.at(0).edge1));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].edge2"), 1, glm::value_ptr(triangles.at(0).edge2));
+			//glUniform3fv(glGetUniformLocation(programCompute, "triangle[0].color"), 1, glm::value_ptr(triangles.at(0).color));
 
 
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-		glUseProgram(programRender);
+
+
+
+
+			glUniform3fv(glGetUniformLocation(programCompute, "cameraPosition"), 1, glm::value_ptr(camera.position));
+			//std::cout << camera.position << "\n";
+			glUniformMatrix4fv(glGetUniformLocation(programCompute, "trans"), 1, GL_FALSE, glm::value_ptr(trans));
+
+			glDispatchCompute((uint32_t)twidth, (uint32_t)theight, 1);
+
+
+			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+			glUseProgram(programRender);
+
+
+			// update image for opengl to draw
+			glBindTexture(GL_TEXTURE_2D, texture);
+			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else {
+			//// keep this just in case
+			//for (int y = 0; y <height; y++) {
+			//	for (int x = 0; x < width; x++) {
+			//		getPixelData(x, y, width, height, data, trans, &camera);
+			//	}
+			//}
+
+			// parallelize to make it faster
+			std::for_each(std::execution::par, std::cbegin(vertical), std::cend(vertical),
+				[data,width,height,&camera,horizontal, trans
+				](int y) {
+					std::for_each(std::execution::par, std::cbegin(horizontal), std::cend(horizontal),
+						[horizontal,y,data,width,height,&camera, trans](int x) {
+							getPixelData(x, y, width, height, data, trans, &camera);
+						}
+					);
+				}
+			);
+
+			glUseProgram(programRender);
+
+
+			// update image for opengl to draw
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+
+
+
+
+		counter += .001;
 		
 
 
@@ -1190,11 +1259,6 @@ int main() {
 
 
 
-
-		// update image for opengl to draw
-		glBindTexture(GL_TEXTURE_2D, texture);
-		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
 
 		// draw image
 		glDrawArrays(GL_TRIANGLES, 0, 6);
