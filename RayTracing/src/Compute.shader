@@ -22,9 +22,18 @@ struct Triangle {
 
 };
 
-uniform Triangle triangle[50];
+struct Light {
+	vec3 position;
+	float intensity;
+};
+
+uniform Triangle triangles[50];
+
+uniform Light lights[50];
 
 uniform int numTriangles;
+
+uniform int numLights;
 
 struct PayLoad {
 	vec3 point;
@@ -43,7 +52,7 @@ PayLoad castRay(vec3 orgin, vec3 dir, int index) {
 		}
 
 
-		Triangle cur = triangle[i];
+		Triangle cur = triangles[i];
 
 		float t = dot(cur.p1 - orgin, cur.n) / dot(dir, cur.n);
 		if (t < 0) {
@@ -82,6 +91,37 @@ PayLoad castRay(vec3 orgin, vec3 dir, int index) {
 	return closest;
 }
 
+float mag(vec3 a) {
+	return sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+vec4 processLighting(PayLoad hit) {
+	vec3 result = vec3(.25,.25,.25);
+
+	for (int i = 0; i < numLights; i++) {
+		Light light = lights[i];
+		float intensity = mag(light.position - hit.point);
+		//result += vec3(intensity);
+	}
+	result = lights[0].position - hit.point;
+
+	return vec4(result.x,result.y,result.z, 1);
+	//for (int i = 0; i < numLights; i++) {
+	//	Light light = lights[i];
+	//	vec3 lightDir = normalize(light.position - hit.point);
+	//	PayLoad hit2 = castRay(hit.point, lightDir, hit.index);
+	//	float dist = length(light.position - hit2.point);
+	//	
+	//	
+	//	/*if (hit2.didHit == false || (hit.didHit == true && hit.distance > dist)) {
+	//		result += vec3(.5,.5,.5);
+	//	}*/
+
+	//	result += vec3(.3, .3, .3);
+	//}
+	//return vec4(result.xyz,1);
+}
+
 
 
 void main() {
@@ -108,7 +148,9 @@ void main() {
 	vec4 value = vec4(0, 0, 0, 1);
 
 	if (hit.didHit == true) {
-		value = vec4(hit.color, 1);
+
+
+		value  = processLighting(hit);
 		//value = vec4( 1.0, 1.0, 1.0, 1.0);
 	}
 	else {
@@ -121,6 +163,8 @@ void main() {
 	//value.x = dir.x;
 	//value.y = dir.y;
 	//value = vec4(orgin, 1);
+
+	//value = vec4(numLights / 10.0, 0, 0, 1);
 
 	//vec4 val = imageLoad(imgOutput, texelCoord);
 	imageStore(imgOutput, texelCoord, value);
