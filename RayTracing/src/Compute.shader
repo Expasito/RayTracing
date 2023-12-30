@@ -66,15 +66,12 @@ PayLoad castRay(vec3 orgin, vec3 dir, int index) {
 			if (
 				dot(cur.n, cross(cur.edge0, I - cur.p1)) > 0.0 &&
 				dot(cur.n, cross(cur.edge1, I - cur.p2)) > 0.0 &&
-				dot(cur.n, cross(cur.edge2, I - cur.p3)) > 0.0
-
-
-				) {
-				closest.point = I;
-				closest.color = cur.color;
-				closest.distance = t;
-				closest.index = i;
-				closest.didHit = true;
+				dot(cur.n, cross(cur.edge2, I - cur.p3)) > 0.0) {
+					closest.point = I;
+					closest.color = cur.color;
+					closest.distance = t;
+					closest.index = i;
+					closest.didHit = true;
 			}
 		}
 	}
@@ -94,17 +91,25 @@ vec4 processLighting(PayLoad hit) {
 		Light light = lights[i];
 		vec3 lightDir = normalize(light.position - hit.point);
 		PayLoad hit2 = castRay(hit.point, lightDir, hit.index);
-		float dist = mag(light.position - hit2.point);
+		float dist = mag(light.position - hit.point);
 		bool shadow = false;
-		if (hit2.didHit == false || (hit.didHit == true && hit.distance > dist)) {
+		// we did not hit any objects at all, then not in shadow
+		// or we did hit but the distance is greater than that to the light
+		if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
+			shadow = false;
+		}
+		else {
 			shadow = true;
 		}
 
 		if (shadow == true) {
-			result += .15 * hit.color;
+			//result += .15 * hit.color;
 		}
 		else {
-			result += hit.color;
+			//result += 1.0/(mag(light.position - hit.point)) * hit.color;
+			float dist_ = mag(light.position - hit.point);
+			result += vec3((1.0 / (dist_ * dist_) * light.intensity / 255.0) * hit.color / 255.0);
+			//result += hit.color;
 		}
 		//result += vec3(0, 0, 1);
 		//result += intensity;
@@ -112,24 +117,11 @@ vec4 processLighting(PayLoad hit) {
 		//float c = 1.0 / 0.0;
 		//result += (light.position - hit.point);
 		//result += lightDir;
+		//result += vec3(dist/10.0);
 	}
 	//result = vec3(mag(lights[0].position - hit.point)/10.0);
 
 	return vec4(result.x,result.y,result.z, 1);
-	//for (int i = 0; i < numLights; i++) {
-	//	Light light = lights[i];
-	//	vec3 lightDir = normalize(light.position - hit.point);
-	//	PayLoad hit2 = castRay(hit.point, lightDir, hit.index);
-	//	float dist = length(light.position - hit2.point);
-	//	
-	//	
-	//	/*if (hit2.didHit == false || (hit.didHit == true && hit.distance > dist)) {
-	//		result += vec3(.5,.5,.5);
-	//	}*/
-
-	//	result += vec3(.3, .3, .3);
-	//}
-	//return vec4(result.xyz,1);
 }
 
 

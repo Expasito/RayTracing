@@ -907,7 +907,7 @@ int main() {
 
 
 	
-	lights.push_back({ {0,8,0},512 });
+	lights.push_back({ {0,8,0},4096 });
 	lights.push_back({ {5,8,5} , 64 });
 	lights.push_back({ {9.99,9.99,9.99},128 });
 
@@ -1238,7 +1238,7 @@ int main() {
 			for (int i = 0; i < lights.size(); i++) {
 				Light light = lights.at(i);
 				std::string name = "lights[" + std::to_string(i) + "].";
-				std::cout << name << "\n";
+				//std::cout << name << "\n";
 
 				// send over light data
 				glUniform3fv(glGetUniformLocation(programCompute, (name + "position").c_str()), 1, glm::value_ptr(light.position));
