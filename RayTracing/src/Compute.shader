@@ -77,16 +77,8 @@ PayLoad castRay(vec3 orgin, vec3 dir, int index) {
 				closest.didHit = true;
 			}
 		}
-	//closest.distance = t;
 	}
 
-	//closest.distance = 1e9;
-
-	//closest.distance = .5f;
-
-	//closest.distance = abs(dot(dir, triangle[0].edge0));
-
-	//closest.didHit = true;
 
 	return closest;
 }
@@ -96,14 +88,32 @@ float mag(vec3 a) {
 }
 
 vec4 processLighting(PayLoad hit) {
-	vec3 result = vec3(.25,.25,.25);
+	vec3 result = vec3(0,0,0);
 
-	for (int i = 0; i < numLights; i++) {
+	for (int i = 0; i < 1; i++) {
 		Light light = lights[i];
-		float intensity = mag(light.position - hit.point);
-		//result += vec3(intensity);
+		vec3 lightDir = normalize(light.position - hit.point);
+		PayLoad hit2 = castRay(hit.point, lightDir, hit.index);
+		float dist = mag(light.position - hit2.point);
+		bool shadow = false;
+		if (hit2.didHit == false || (hit.didHit == true && hit.distance > dist)) {
+			shadow = true;
+		}
+
+		if (shadow == true) {
+			result += .15 * hit.color;
+		}
+		else {
+			result += hit.color;
+		}
+		//result += vec3(0, 0, 1);
+		//result += intensity;
+		//result += vec3(intensity,intensity,intensity);
+		//float c = 1.0 / 0.0;
+		//result += (light.position - hit.point);
+		//result += lightDir;
 	}
-	result = lights[0].position - hit.point;
+	//result = vec3(mag(lights[0].position - hit.point)/10.0);
 
 	return vec4(result.x,result.y,result.z, 1);
 	//for (int i = 0; i < numLights; i++) {

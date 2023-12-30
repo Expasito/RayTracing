@@ -1,7 +1,7 @@
 #include "Utils.h"
 
 void shaderBuildStatus(unsigned int shader) {
-	int result;
+	int result = 0;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
 	std::cout << "Result: " << result << "\n";
 	if (result == GL_FALSE) {
@@ -23,7 +23,7 @@ uint32_t genShader(GLenum shaderType, char** code) {
 	uint32_t shader;
 	shader = glCreateShader(shaderType);
 	glShaderSource(shader, 1, code, NULL);
-	printf("Shader code:\n %s\n", *code);
+	//printf("Shader code:\n %s\n", *code);
 	glCompileShader(shader);
 	
 	shaderBuildStatus(shader);
@@ -39,7 +39,10 @@ uint32_t genProgram(std::vector<uint32_t> shaders) {
 		glAttachShader(program, shader);
 	}
 	glLinkProgram(program);
+	
 	glUseProgram(program);
+	
+	//exit(1);
 
 	//for (uint32_t const& shader : shaders) {
 	//	glDeleteShader(shader);

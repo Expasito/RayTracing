@@ -753,7 +753,7 @@ struct
 
 
 // just raw strings, very simple shaders so will leave as a long string
-const char* vertexShaderSource = "#version 330 core\n"
+const char* vertexShaderSource = "#version 450 core\n"
 "layout (location = 0) in vec3 pos;\n"
 "layout (location = 1) in vec2 textCoord;\n"
 
@@ -763,7 +763,7 @@ const char* vertexShaderSource = "#version 330 core\n"
 "   TexCord=textCoord;\n"
 "   gl_Position = vec4(pos,1);\n"
 "}\0";
-const char* fragmentShaderSource = "#version 330 core\n"
+const char* fragmentShaderSource = "#version 450 core\n"
 "out vec4 FragColor;\n"
 "in vec2 TexCord;\n"
 "uniform sampler2D texture1;\n"
@@ -773,7 +773,35 @@ const char* fragmentShaderSource = "#version 330 core\n"
 "}\n\0";
 
 
+void checkErrors() {
+	GLenum err;
+	while ((err = glGetError()) != GL_NO_ERROR) {
+		std::cout << "ERROR!\n";
+		std::cout << err << "\n";
+		exit(1);
+	}
+}
+
+void GLAPIENTRY MessageCallback(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam)
+{
+	fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		type, severity, message);
+
+	//exit(1);
+}
+
+
+
 int main() {
+
+
 
 
 	std::priority_queue<std::pair<int, int>> pq;
@@ -926,8 +954,12 @@ int main() {
 	//
 	//
 
+	// During init, enable debug output
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, 0);
 
-	char* shaderCode = (char*)malloc(sizeof(char) * 10000);
+
+	char* shaderCode = (char*)malloc(sizeof(char) * 60000);
 	FILE* f = fopen("src/Compute.shader", "r");
 
 	char ch;
@@ -948,20 +980,31 @@ int main() {
 
 
 	printf("%s", shaderCode);
-	//exit(1);
 
 	// create all shaders
 	uint32_t compute = genShader(GL_COMPUTE_SHADER, &shaderCode);
 	uint32_t vertex = genShader(GL_VERTEX_SHADER, (char**)(& vertexShaderSource));
 	uint32_t fragment = genShader(GL_FRAGMENT_SHADER, (char**)(& fragmentShaderSource));
 
+	std::cout << compute << " " << vertex << " " << fragment << "\n";
+
 	// create the program based on the shaders provided
 	//std::vector<uint32_t> shaders;
 	//shaders.push_back(compute);
 	//shaders.push_back(vertex);
 	//shaders.push_back(fragment);
-	uint32_t programCompute = genProgram({compute});
 	uint32_t programRender = genProgram({vertex, fragment});
+	//uint32_t programRender;
+	uint32_t programCompute = genProgram({compute});
+	//uint32_t programCompute = glCreateProgram();
+	//glAttachShader(programCompute, compute);
+	//glLinkProgram(programCompute);
+	//if (glIsProgram(programCompute) == GL_TRUE) {
+		//std::cout << "Is Program\n";
+	//}
+	//std::cout << (glIsProgram(programCompute) == GL_TRUE);
+	//glUseProgram(programCompute);
+	//exit(1);
 	//program = glCreateProgram();
 	//glAttachShader(program, compute);
 	//glAttachShader(program, vertex);
@@ -970,7 +1013,10 @@ int main() {
 
 	//glLinkProgram(programCompute);
 	glUseProgram(programCompute);
+	glUseProgram(programRender);
 	//std::cout << program << "\n";
+
+	//exit(1);
 
 	//exit(1);
 
@@ -1002,6 +1048,7 @@ int main() {
 
 
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
 
 	//float test[twidth * theight*4];
 	////glGetTexImage(0, 0, GL_RGBA32F, GL_FLOAT, sizeof(float) * 99, test);
@@ -1112,7 +1159,10 @@ int main() {
 	// keep track of which triangle we are on
 	int cntr = 0;
 
+	//exit(1);
 	float counter = 0.0f;
+
+	//exit(1);
 	
 	
 	// now for the run loop
@@ -1158,6 +1208,8 @@ int main() {
 
 		bool GPU = true;
 
+			//checkErrors();
+			//exit(1);
 		if (GPU) {
 
 
@@ -1186,6 +1238,7 @@ int main() {
 			for (int i = 0; i < lights.size(); i++) {
 				Light light = lights.at(i);
 				std::string name = "lights[" + std::to_string(i) + "].";
+				std::cout << name << "\n";
 
 				// send over light data
 				glUniform3fv(glGetUniformLocation(programCompute, (name + "position").c_str()), 1, glm::value_ptr(light.position));
@@ -1195,6 +1248,7 @@ int main() {
 
 			glUniform1i(glGetUniformLocation(programCompute, "numTriangles"), triangles.size());
 			glUniform1i(glGetUniformLocation(programCompute, "numLights"), lights.size());
+
 
 
 			//// send over triangle
