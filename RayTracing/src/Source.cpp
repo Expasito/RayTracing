@@ -1198,9 +1198,9 @@ int main() {
 	glGenBuffers(1, &ubo);
 	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light) * 2, lightArr, GL_STATIC_DRAW);
-	//glBindBufferBase(GL_UNIFORM_BUFFER, 3, ubo);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 3, ubo);
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 4, ubo);
+	//glBindBufferBase(GL_UNIFORM_BUFFER, 4, ubo);
 
 	checkErrors();
 	//exit(1);

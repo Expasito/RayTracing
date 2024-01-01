@@ -40,10 +40,6 @@ layout(std140, binding = 3) uniform lights2
 	Light data[25];
 } Lights2;
 
-layout(std140, binding = 4) uniform lights3
-{
-	Light data;
-} Lights3[25];
 
 uniform Triangle triangles[50];
 
