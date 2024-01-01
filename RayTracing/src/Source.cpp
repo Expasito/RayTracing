@@ -108,7 +108,7 @@ public:
 	float moveBaseSpeed = 1/128.0f;
 	float moveSpeed=moveBaseSpeed;
 	// make it so the basespeed and rotspaeed are related
-	float rotBaseSpeed = moveBaseSpeed*3.14159265 * 2;
+	float rotBaseSpeed = moveBaseSpeed*3.14159265 * 2*2;
 	float rotSpeed=rotBaseSpeed;
 
 	// camera view plane sizes. Sort of determines the distance between each pixel
@@ -482,13 +482,33 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 
 	for (Light l : lights) {
 
-		color += (l.intensity * hit.color);
-		continue;
 
 		glm::vec3 lightDir = glm::normalize(l.position - hit.point);
 		PayLoad hit2 = castRay(hit.point, lightDir, hit.cur);
+		float dist = magnitude(l.position - hit.point);
+		bool shadow = false;
+		if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
+			shadow = false;
+		}
+		else {
+			shadow = true;
+		}
+
+		if (shadow == true) {
+
+		}
+		else {
+			float dist_ = magnitude(l.position - hit.point);
+			float modify = 1.0f / (dist_ * dist_) * l.intensity / 255.0 / 255.0f;
+			color += modify * hit.color;
+
+		}
+
+		//color += (l.intensity * hit.color);
+		continue;
+
 		// this is the distance from the light to the point we hit in castRay
-		float dist = magnitude(l.position - hit2.point);
+		//float dist = magnitude(l.position - hit2.point);
 
 
 
@@ -500,7 +520,7 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 		glm::vec3 specular = (spec * glm::vec3(128, 128, 128));
 
 
-		float shadow = 1;
+		//float shadow = 1;
 		// and now we check if we hit the light first
 		if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
 			shadow = 0;
@@ -511,7 +531,7 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 
 		float dot = fabs(glm::dot(lightDir, norm));
 		glm::vec3 col = 1.0f/(dist) * hit.color;
-		color += (col * dot + specular) * (1-shadow);
+		//color += (col * dot + specular) * (1-shadow);
 
 		//color += (col);
 
@@ -521,7 +541,7 @@ glm::vec3 processLighting(PayLoad hit, Camera* camera) {
 }
 
 
-void getPixelData(int x, int y, int width, int height, unsigned char* data, glm::mat4 trans, Camera* camera) {
+void getPixelData(int x, int y, int width, int height, float * data, glm::mat4 trans, Camera* camera) {
 	glm::vec3 dir, origin;
 
 	// convert camera plane pixel to into a range
@@ -593,14 +613,14 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 
 
 
-		if (color.x > 255) {
-			color.x = 255;
+		if (color.x > 1.0) {
+			color.x = 1.0;
 		}
-		if (color.y > 255) {
-			color.y = 255;
+		if (color.y > 1.0) {
+			color.y = 1.0;
 		}
-		if (color.z > 255) {
-			color.z = 255;
+		if (color.z > 1.0) {
+			color.z = 1.0;
 		}
 
 		data[index] = color.x;
@@ -614,9 +634,9 @@ void getPixelData(int x, int y, int width, int height, unsigned char* data, glm:
 		//data[index + 1] = 206;
 		//data[index + 2] = 235;
 
-		data[index] = 0;
-		data[index + 1] = 0;
-		data[index + 2] = 0;
+		data[index] = 0.0;
+		data[index + 1] = 0.0;
+		data[index + 2] = 0.0;
 	}
 
 }
@@ -1103,7 +1123,7 @@ int main() {
 	// this array will hold the color for each pixel we send a ray out for
 	int const channels = 3;
 	// width and height are defined above
-	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width * height * channels);
+	float* data = (float*)malloc(sizeof(float) * width * height * channels);
 
 	// fill the array with zeros
 	int c = 0;
@@ -1129,7 +1149,7 @@ int main() {
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
 	// do position first
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
 	// texture coordinates
@@ -1162,6 +1182,27 @@ int main() {
 	//exit(1);
 	float counter = 0.0f;
 
+	//exit(1);
+
+	Light lightArr[4];
+	lightArr[0] = { {1.0,0.0,1.0}, 100 };
+	lightArr[1] = { {0.0,1.0,0.0}, 200 };
+
+	uint32_t testBuff;
+	glGenBuffers(1, &testBuff);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testBuff);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Light) * 2, lightArr, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, testBuff);
+
+	uint32_t ubo;
+	glGenBuffers(1, &ubo);
+	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light) * 2, lightArr, GL_STATIC_DRAW);
+	//glBindBufferBase(GL_UNIFORM_BUFFER, 3, ubo);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 4, ubo);
+
+	checkErrors();
 	//exit(1);
 	
 	
@@ -1240,6 +1281,7 @@ int main() {
 				std::string name = "lights[" + std::to_string(i) + "].";
 				//std::cout << name << "\n";
 
+
 				// send over light data
 				glUniform3fv(glGetUniformLocation(programCompute, (name + "position").c_str()), 1, glm::value_ptr(light.position));
 				glUniform1f(glGetUniformLocation(programCompute, (name + "intensity").c_str()), light.intensity);
@@ -1310,7 +1352,7 @@ int main() {
 
 			// update image for opengl to draw
 			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 

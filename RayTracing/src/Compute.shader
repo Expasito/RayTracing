@@ -11,6 +11,8 @@ uniform float testFloat;
 uniform vec3 cameraPosition;
 uniform mat4 trans;
 
+
+
 struct Triangle {
 	vec3 p;
 	vec3 n;
@@ -27,9 +29,25 @@ struct Light {
 	float intensity;
 };
 
+
+layout(std140, binding = 2) buffer lights
+{
+	Light data[];
+} Lights;
+
+layout(std140, binding = 3) uniform lights2
+{
+	Light data[25];
+} Lights2;
+
+layout(std140, binding = 4) uniform lights3
+{
+	Light data;
+} Lights3[25];
+
 uniform Triangle triangles[50];
 
-uniform Light lights[50];
+//uniform Light lights[25];
 
 uniform int numTriangles;
 
@@ -87,8 +105,13 @@ float mag(vec3 a) {
 vec4 processLighting(PayLoad hit) {
 	vec3 result = vec3(0,0,0);
 
-	for (int i = 0; i < 1; i++) {
-		Light light = lights[i];
+	if (hit.didHit == false) {
+		return vec4(result, 1);
+	}
+
+	for (int i = 0; i < numLights; i++) {
+		//Light light = Lights.data[i];
+		Light light = Lights2.data[i];
 		vec3 lightDir = normalize(light.position - hit.point);
 		PayLoad hit2 = castRay(hit.point, lightDir, hit.index);
 		float dist = mag(light.position - hit.point);
@@ -147,17 +170,23 @@ void main() {
 	PayLoad hit = castRay(orgin, dir, -1);
 
 
-	vec4 value = vec4(0, 0, 0, 1);
+	// now process the lighting for that pixel
+	vec4 value = processLighting(hit);
 
-	if (hit.didHit == true) {
+	////value = vec4(numLights);
+	//for (int i = 0; i < numLights; i++) {
+	//	value += vec4(lights[i].intensity);
+	//}
 
+	//if (hit.didHit == true) {
 
-		value  = processLighting(hit);
-		//value = vec4( 1.0, 1.0, 1.0, 1.0);
-	}
-	else {
-		value = vec4( 0, 0, 0, 0 );
-	}
+	//	value  = processLighting(hit);
+
+	//	//value = vec4( 1.0, 1.0, 1.0, 1.0);
+	//}
+	//else {
+	//	value = vec4( 0, 0, 0, 0 );
+	//}
 
 
 	//value = vec4(hit.distance,0,0, 1);
@@ -167,6 +196,8 @@ void main() {
 	//value = vec4(orgin, 1);
 
 	//value = vec4(numLights / 10.0, 0, 0, 1);
+
+	//value = vec4(Lights.data[1].position, 1);
 
 	//vec4 val = imageLoad(imgOutput, texelCoord);
 	imageStore(imgOutput, texelCoord, value);
