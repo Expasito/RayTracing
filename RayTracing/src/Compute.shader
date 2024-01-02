@@ -184,6 +184,29 @@ void main() {
 	//	value = vec4( 0, 0, 0, 0 );
 	//}
 
+	vec3 val = vec3(0);
+	for (int i = 0; i < 1; i++) {
+		Light l = Lights2.data[i];
+
+		// get direction from light to camera
+		vec3 lightDir = l.position - orgin;
+
+		// get the distance from the light
+		float dist = length(l.position - orgin);
+
+		float dott = (dot(normalize(lightDir), normalize(dir)));
+
+		val += vec3(dott*dott/(dist*dist));
+
+		// get the dot product of the lightDir and our view dir for this pixel
+		//float dott = max(dot(lightDir, dir)*10.0/(dist*dist), 0);
+		//val = vec3(dott);
+		//val = vec3(dist);
+		//val = vec3(dot(lightDir, dir));
+	}
+
+
+	value += vec4(val, 1);
 
 	//value = vec4(hit.distance,0,0, 1);
 

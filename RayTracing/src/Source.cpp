@@ -1185,7 +1185,8 @@ int main() {
 	//exit(1);
 
 	Light lightArr[4];
-	lightArr[0] = { {1.0,0.0,1.0}, 100 };
+	lightArr[0] = { {0.0,0.0,9.99}, 1000 };
+	//lightArr[0] = lights.at(0);
 	lightArr[1] = { {0.0,1.0,0.0}, 200 };
 
 	uint32_t testBuff;
@@ -1286,6 +1287,7 @@ int main() {
 				glUniform3fv(glGetUniformLocation(programCompute, (name + "position").c_str()), 1, glm::value_ptr(light.position));
 				glUniform1f(glGetUniformLocation(programCompute, (name + "intensity").c_str()), light.intensity);
 				
+				continue;
 			}
 
 			glUniform1i(glGetUniformLocation(programCompute, "numTriangles"), triangles.size());
