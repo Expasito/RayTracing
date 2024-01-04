@@ -144,6 +144,22 @@ vec4 processLighting(PayLoad hit) {
 }
 
 
+uint genRand(uint seed) {
+
+	uint a = seed;
+	uint m = 0x35534334;
+	uint b = 0x34351595;
+	uint mod = 0x939394;
+
+	// this generates the random number
+	//uint rand = (a * b << a << b / (a % b) + a - b) / a + 2 - b;
+	uint rand = (m*a + b) % mod;
+
+	
+	//rand &= (rand << 0xdeadbeef) >> 0xfead;
+
+	return rand;
+}
 
 void main() {
 
@@ -195,8 +211,11 @@ void main() {
 		float dist = length(l.position - orgin);
 
 		float dott = (dot(normalize(lightDir), normalize(dir)));
+		if (dott > 0) {
+			val += vec3(dott*dott/(dist));
 
-		val += vec3(dott*dott/(dist*dist));
+		}
+
 
 		// get the dot product of the lightDir and our view dir for this pixel
 		//float dott = max(dot(lightDir, dir)*10.0/(dist*dist), 0);
@@ -207,6 +226,19 @@ void main() {
 
 
 	value += vec4(val, 1);
+
+
+	uint one = genRand(texelCoord.x * texelCoord.y/ (1+texelCoord.x + texelCoord.y));
+	uint two = genRand(one);
+	uint three = genRand(two);
+
+
+	// convert it into a range that is usable
+	//uint modded = rand % (a * b);
+
+	vec3 conv = vec3((one % 20) / 20.0, (two % 20) / 20.0, (three % 20) / 20.0);
+
+	value = vec4(vec3(conv), 1);
 
 	//value = vec4(hit.distance,0,0, 1);
 

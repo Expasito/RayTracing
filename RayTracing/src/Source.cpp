@@ -1188,17 +1188,18 @@ int main() {
 	lightArr[0] = { {0.0,0.0,9.99}, 1000 };
 	//lightArr[0] = lights.at(0);
 	lightArr[1] = { {0.0,1.0,0.0}, 200 };
+	lightArr[2] = { {0,100,0}, 10000 };
 
 	uint32_t testBuff;
 	glGenBuffers(1, &testBuff);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testBuff);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Light) * 2, lightArr, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Light) * 3, lightArr, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, testBuff);
 
 	uint32_t ubo;
 	glGenBuffers(1, &ubo);
 	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light) * 2, lightArr, GL_STATIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light) * 3, lightArr, GL_STATIC_DRAW);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 3, ubo);
 
 	//glBindBufferBase(GL_UNIFORM_BUFFER, 4, ubo);
