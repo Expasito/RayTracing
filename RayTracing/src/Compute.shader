@@ -228,7 +228,7 @@ void main() {
 	value += vec4(val, 1);
 
 
-	uint one = genRand(texelCoord.x * texelCoord.y/ (1+texelCoord.x + texelCoord.y));
+	uint one = genRand(texelCoord.x * texelCoord.y);
 	uint two = genRand(one);
 	uint three = genRand(two);
 
