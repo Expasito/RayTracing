@@ -57,6 +57,41 @@ struct PayLoad {
 	bool didHit;
 };
 
+// this is what we will update and use for the next random number
+// this must be set before using the random generator
+uint currentSeed = 0;
+
+uint genRand() {
+
+	uint a = currentSeed;
+	uint m = 0x35534334;
+	uint b = 0x34351595;
+	uint mod = 0x939394;
+
+	// this generates the random number
+	uint rand = (m * a + b) % mod;
+
+	currentSeed = rand;
+
+	return rand;
+}
+
+
+vec3 genVec3() {
+	uint one = genRand();
+	uint two = genRand();
+	uint three = genRand();
+
+
+	int range = 100;
+	float range_ = float(range);
+
+	// convert it into a range that is usable
+	vec3 conv = vec3((one % range) / range_, (two % range) / range_, (three % range) / range_);
+
+	return conv;
+}
+
 PayLoad castRay(vec3 orgin, vec3 dir, int index) {
 	PayLoad closest = { {0,0,0},{0,0,0},1e9,-1,false };
 
@@ -72,7 +107,6 @@ PayLoad castRay(vec3 orgin, vec3 dir, int index) {
 		if (t < 0) {
 			continue;
 		}
-		//closest.distance = t;
 		
 		vec3 I = orgin + (t * dir);
 
@@ -122,44 +156,18 @@ vec4 processLighting(PayLoad hit) {
 		}
 
 		if (shadow == true) {
-			//result += .15 * hit.color;
 		}
 		else {
-			//result += 1.0/(mag(light.position - hit.point)) * hit.color;
 			float dist_ = mag(light.position - hit.point);
 			result += vec3((1.0 / (dist_ * dist_) * light.intensity / 255.0) * hit.color / 255.0);
-			//result += hit.color;
 		}
-		//result += vec3(0, 0, 1);
-		//result += intensity;
-		//result += vec3(intensity,intensity,intensity);
-		//float c = 1.0 / 0.0;
-		//result += (light.position - hit.point);
-		//result += lightDir;
-		//result += vec3(dist/10.0);
 	}
-	//result = vec3(mag(lights[0].position - hit.point)/10.0);
 
 	return vec4(result.x,result.y,result.z, 1);
 }
 
 
-uint genRand(uint seed) {
 
-	uint a = seed;
-	uint m = 0x35534334;
-	uint b = 0x34351595;
-	uint mod = 0x939394;
-
-	// this generates the random number
-	//uint rand = (a * b << a << b / (a % b) + a - b) / a + 2 - b;
-	uint rand = (m*a + b) % mod;
-
-	
-	//rand &= (rand << 0xdeadbeef) >> 0xfead;
-
-	return rand;
-}
 
 void main() {
 
@@ -179,80 +187,47 @@ void main() {
 	vec3 dir = pixel;
 	vec3 orgin = cameraPosition;
 
+	// assign the currentSeed value for random number generator
+	currentSeed = texelCoord.x * texelCoord.y;
+
+	// get the first point
 	PayLoad hit = castRay(orgin, dir, -1);
 
+	vec3 color = vec3(0);
 
-	// now process the lighting for that pixel
-	vec4 value = processLighting(hit);
+	if (hit.didHit == true) {
+		color = vec3(hit.color);
 
-	////value = vec4(numLights);
-	//for (int i = 0; i < numLights; i++) {
-	//	value += vec4(lights[i].intensity);
-	//}
+		Triangle t = triangles[hit.index];
 
-	//if (hit.didHit == true) {
+		vec3 normal = t.n;
 
-	//	value  = processLighting(hit);
+		vec3 newNormal = normal;
 
-	//	//value = vec4( 1.0, 1.0, 1.0, 1.0);
-	//}
-	//else {
-	//	value = vec4( 0, 0, 0, 0 );
-	//}
+		if(hit.x)
 
-	vec3 val = vec3(0);
-	for (int i = 0; i < 1; i++) {
-		Light l = Lights2.data[i];
-
-		// get direction from light to camera
-		vec3 lightDir = l.position - orgin;
-
-		// get the distance from the light
-		float dist = length(l.position - orgin);
-
-		float dott = (dot(normalize(lightDir), normalize(dir)));
-		if (dott > 0) {
-			val += vec3(dott*dott/(dist));
+		color = vec3(abs(normal.x), abs(normal.y), abs(normal.z));
+		// we want 100 random rays
+		for (int i = 0; i < 100; i++) {
 
 		}
-
-
-		// get the dot product of the lightDir and our view dir for this pixel
-		//float dott = max(dot(lightDir, dir)*10.0/(dist*dist), 0);
-		//val = vec3(dott);
-		//val = vec3(dist);
-		//val = vec3(dot(lightDir, dir));
 	}
 
 
-	value += vec4(val, 1);
+	// now process the lighting for that pixel
+	//vec4 value = processLighting(hit);
 
 
-	uint one = genRand(texelCoord.x * texelCoord.y);
-	uint two = genRand(one);
-	uint three = genRand(two);
+	vec4 value = vec4(color, 1);
+
+	// generate the random vec3
+	//vec3 conv = genVec3();
+
+	//conv = genVec3();
+
+	//value = vec4(vec3(conv), 1);
 
 
-	// convert it into a range that is usable
-	//uint modded = rand % (a * b);
-
-	vec3 conv = vec3((one % 20) / 20.0, (two % 20) / 20.0, (three % 20) / 20.0);
-
-	value = vec4(vec3(conv), 1);
-
-	//value = vec4(hit.distance,0,0, 1);
-
-	//value.x = dir.x;
-	//value.y = dir.y;
-	//value = vec4(orgin, 1);
-
-	//value = vec4(numLights / 10.0, 0, 0, 1);
-
-	//value = vec4(Lights.data[1].position, 1);
-
-	//vec4 val = imageLoad(imgOutput, texelCoord);
 	imageStore(imgOutput, texelCoord, value);
 
-	//float inc = .001;
-	//imageStore(imgOutput, texelCoord, vec4(val.x + inc, val.y + inc, val.z, val.w));
 }
