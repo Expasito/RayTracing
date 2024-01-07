@@ -196,21 +196,18 @@ void main() {
 	vec3 color = vec3(0);
 
 	if (hit.didHit == true) {
-		color = vec3(hit.color);
 
+		// get the triangle hit and its normal
 		Triangle t = triangles[hit.index];
-
 		vec3 normal = t.n;
 
-		vec3 newNormal = normal;
-
-		if(hit.x)
-
-		color = vec3(abs(normal.x), abs(normal.y), abs(normal.z));
-		// we want 100 random rays
-		for (int i = 0; i < 100; i++) {
-
+		// if the dot of the direction vector and normal is negative, flip the normal
+		// so relfected vectors face the right direction
+		if (dot(dir, normal) < 0) {
+			normal *= -1;
 		}
+
+		color = vec3(dot(dir, normal));
 	}
 
 
