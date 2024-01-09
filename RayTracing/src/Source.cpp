@@ -1187,8 +1187,8 @@ int main() {
 	Light lightArr[4];
 	lightArr[0] = { {0.0,0.0,9.99}, 1000 };
 	//lightArr[0] = lights.at(0);
-	lightArr[1] = { {0.0,1.0,0.0}, 200 };
-	lightArr[2] = { {0,100,0}, 10000 };
+	lightArr[1] = { {0.0,1.0,0.0}, 0 };
+	lightArr[2] = { {0,100,0}, 0 };
 
 	uint32_t testBuff;
 	glGenBuffers(1, &testBuff);

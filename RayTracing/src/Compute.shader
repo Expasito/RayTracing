@@ -64,12 +64,14 @@ uint currentSeed = 0;
 uint genRand() {
 
 	uint a = currentSeed;
-	uint m = 0x35534334;
-	uint b = 0x34351595;
-	uint mod = 0x939394;
+	uint m = 0x63ad6ee6;
+	uint b = 0x34cf359a;
+	//uint mod = 0x939394;
 
 	// this generates the random number
-	uint rand = (m * a + b) % mod;
+	//uint rand = (m * a + b) % mod;
+
+	uint rand = (m * a + b);
 
 	currentSeed = rand;
 
@@ -87,7 +89,11 @@ vec3 genVec3() {
 	float range_ = float(range);
 
 	// convert it into a range that is usable
-	vec3 conv = vec3((one % range) / range_, (two % range) / range_, (three % range) / range_);
+	vec3 conv = vec3(
+		2.0 * ((one % range) / range_) - 1.0,
+		2.0 * ((two % range) / range_) - 1.0,
+		2.0 * ((three % range) / range_) - 1.0
+		);
 
 	return conv;
 }
@@ -132,11 +138,11 @@ float mag(vec3 a) {
 	return sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 }
 
-vec4 processLighting(PayLoad hit) {
+vec3 processLighting(PayLoad hit) {
 	vec3 result = vec3(0,0,0);
 
 	if (hit.didHit == false) {
-		return vec4(result, 1);
+		return result;
 	}
 
 	for (int i = 0; i < numLights; i++) {
@@ -159,11 +165,11 @@ vec4 processLighting(PayLoad hit) {
 		}
 		else {
 			float dist_ = mag(light.position - hit.point);
-			result += vec3((1.0 / (dist_ * dist_) * light.intensity / 255.0) * hit.color / 255.0);
+			result += vec3((1.0 / (dist_ * dist_) * light.intensity / 255.0));
 		}
 	}
 
-	return vec4(result.x,result.y,result.z, 1);
+	return result;
 }
 
 
@@ -190,6 +196,7 @@ void main() {
 	// assign the currentSeed value for random number generator
 	currentSeed = texelCoord.x * texelCoord.y;
 
+
 	// get the first point
 	PayLoad hit = castRay(orgin, dir, -1);
 
@@ -203,11 +210,55 @@ void main() {
 
 		// if the dot of the direction vector and normal is negative, flip the normal
 		// so relfected vectors face the right direction
-		if (dot(dir, normal) < 0) {
+		if (dot(dir, normal) > 0) {
 			normal *= -1;
 		}
 
-		color = vec3(dot(dir, normal));
+
+		// calculate the indirect lighting
+		vec3 indirect = vec3(0.0);
+		int numVecs = 1;
+		for (int i = 0; i < numVecs; i++) {
+
+			// generate a vector
+			//vec3 testVec = genVec3();
+
+			vec3 testVec = normal;
+
+			// while the vector's dot is negative, generate a new vector
+			//while (dot(testVec, normal) < 0) {
+			//	testVec = genVec3();
+			//}
+
+
+			PayLoad hit_ = castRay(hit.point, testVec, hit.index);
+			if (hit_.didHit) {
+
+				// do lighting calcs for the indirect lighting too
+				indirect += processLighting(hit_) * hit_.color / 255.0;
+				//indirect += vec3(hit_.color/255.0);
+			}
+
+		}
+
+		indirect /= float(numVecs);
+
+		// direct lighting
+
+		vec3 direct = processLighting(hit);
+
+		color = vec3(-dot(dir, normal));
+
+		//color = indirect * hit.color;
+
+		// (lighting) * albedo, which is the color of the triangle
+		color = (indirect + direct) * hit.color/255.0;
+
+		//color = indirect + direct;
+
+		//color = indirect;
+
+
 	}
 
 
@@ -221,6 +272,16 @@ void main() {
 	//vec3 conv = genVec3();
 
 	//conv = genVec3();
+
+	int mod = 7919;
+	//int mod = 50;
+
+
+
+	//vec3 conv = vec3((genRand() % mod) /float(mod));
+
+
+	//conv = conv * 2 - 1;
 
 	//value = vec4(vec3(conv), 1);
 
