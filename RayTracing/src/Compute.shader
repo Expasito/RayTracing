@@ -12,6 +12,29 @@ uniform vec3 cameraPosition;
 uniform mat4 trans;
 
 
+// define several rotation matricies that I already had from previous
+// projects
+mat3 RotateX(float phi) {
+	return mat3(
+		vec3(1., 0., 0.),
+		vec3(0., cos(phi), -sin(phi)),
+		vec3(0., sin(phi), cos(phi)));
+}
+
+mat3 RotateY(float theta) {
+	return mat3(
+		vec3(cos(theta), 0., -sin(theta)),
+		vec3(0., 1., 0.),
+		vec3(sin(theta), 0., cos(theta)));
+}
+
+mat3 RotateZ(float psi) {
+	return mat3(
+		vec3(cos(psi), -sin(psi), 0.),
+		vec3(sin(psi), cos(psi), 0.),
+		vec3(0., 0., 1.));
+}
+
 
 struct Triangle {
 	vec3 p;
@@ -77,6 +100,15 @@ uint genRand() {
 
 	return rand;
 }
+
+
+int genAngle() {
+	uint one = genRand();
+
+	// mod 180 and then sub by 90 to go from -90 degrees to +90 degrees
+	return int((one % 180)) - 90;
+}
+
 
 
 vec3 genVec3() {
@@ -217,13 +249,23 @@ void main() {
 
 		// calculate the indirect lighting
 		vec3 indirect = vec3(0.0);
-		int numVecs = 1;
+		int numVecs = 10;
 		for (int i = 0; i < numVecs; i++) {
 
 			// generate a vector
 			//vec3 testVec = genVec3();
 
+			// define our angles
+			int angleX = genAngle();
+			int angleY = genAngle();
+			int angleZ = genAngle();
 			vec3 testVec = normal;
+
+			// rotate the vector
+			vec3 newVec = RotateZ(angleZ/2) *
+				RotateY(angleY/2) * 
+				RotateX(angleX/2) * 
+				testVec;
 
 			// while the vector's dot is negative, generate a new vector
 			//while (dot(testVec, normal) < 0) {
@@ -231,7 +273,7 @@ void main() {
 			//}
 
 
-			PayLoad hit_ = castRay(hit.point, testVec, hit.index);
+			PayLoad hit_ = castRay(hit.point, newVec, hit.index);
 			if (hit_.didHit) {
 
 				// do lighting calcs for the indirect lighting too
@@ -254,9 +296,11 @@ void main() {
 		// (lighting) * albedo, which is the color of the triangle
 		color = (indirect + direct) * hit.color/255.0;
 
-		//color = indirect + direct;
+		//color = direct;
 
 		//color = indirect;
+
+		//color = hit.color / 255.0;
 
 
 	}
