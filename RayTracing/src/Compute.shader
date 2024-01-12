@@ -178,12 +178,18 @@ vec3 processLighting(PayLoad hit) {
 	}
 
 	for (int i = 0; i < numLights; i++) {
-		//Light light = Lights.data[i];
+
+		// get the light data
 		Light light = Lights2.data[i];
-		vec3 lightDir = normalize(light.position - hit.point);
+
+		vec3 ray = light.position - hit.point;
+
+
+		vec3 lightDir = normalize(ray);
 		PayLoad hit2 = castRay(hit.point, lightDir, hit.index);
-		float dist = mag(light.position - hit.point);
+		float dist = mag(ray);
 		bool shadow = false;
+
 		// we did not hit any objects at all, then not in shadow
 		// or we did hit but the distance is greater than that to the light
 		if (hit2.didHit == false || (hit2.didHit == true && hit2.distance > dist)) {
@@ -213,15 +219,19 @@ void main() {
 	// get the x and y values of the pixel we are working with
 	ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
 
+	// get the width and height from the workgroups values
 	int width = int(gl_NumWorkGroups.x);
 	int height = int(gl_NumWorkGroups.y);
 
+	// now get uv values based on the width and height and the current workgroup values
 	float v = (texelCoord.y - height / 2.0) / float(height);
 	float u = (texelCoord.x - width / 2.0) / float(width);
 
+	// get the pixel by camera transformation
 	vec4 pixel2 = trans * vec4(u, v, .5, 1.0);
 	vec3 pixel = {pixel2.x,pixel2.y,pixel2.z};
 
+	// direction and origin data
 	vec3 dir = pixel;
 	vec3 orgin = cameraPosition;
 
@@ -233,6 +243,8 @@ void main() {
 	PayLoad hit = castRay(orgin, dir, -1);
 
 	vec3 color = vec3(0);
+
+	//color = vec3(1);
 
 	if (hit.didHit == true) {
 
@@ -249,47 +261,49 @@ void main() {
 
 		// calculate the indirect lighting
 		vec3 indirect = vec3(0.0);
-		int numVecs = 10;
-		for (int i = 0; i < numVecs; i++) {
+		//int numVecs = 0;
+		//for (int i = 0; i < numVecs; i++) {
 
-			// generate a vector
-			//vec3 testVec = genVec3();
+		//	// generate a vector
+		//	//vec3 testVec = genVec3();
 
-			// define our angles
-			int angleX = genAngle();
-			int angleY = genAngle();
-			int angleZ = genAngle();
-			vec3 testVec = normal;
+		//	// using some math I did, we can get a new vector using 2 random valeus and solving
+		//	// for the third to make sure the dot product is greater than 0
 
-			// rotate the vector
-			vec3 newVec = RotateZ(angleZ/2) *
-				RotateY(angleY/2) * 
-				RotateX(angleX/2) * 
-				testVec;
+		//	//
 
-			// while the vector's dot is negative, generate a new vector
-			//while (dot(testVec, normal) < 0) {
-			//	testVec = genVec3();
-			//}
+		//	// get two new points
+		//	int angleX = genAngle();
+		//	int angleY = genAngle();
+		//	int angleZ = genAngle();
+
+		//	// normal must be a unit vector
+		//	vec3 testVec = normal;
 
 
-			PayLoad hit_ = castRay(hit.point, newVec, hit.index);
-			if (hit_.didHit) {
 
-				// do lighting calcs for the indirect lighting too
-				indirect += processLighting(hit_) * hit_.color / 255.0;
-				//indirect += vec3(hit_.color/255.0);
-			}
+		//	vec3 newVec = vec3(testVec.x + angleX/90.0, testVec.y + angleY/90.0, testVec.z + angleZ/90.0);
 
-		}
 
-		indirect /= float(numVecs);
+		//	PayLoad hit_ = castRay(hit.point, newVec, hit.index);
+		//	if (hit_.didHit) {
+
+		//		indirect += processLighting(hit_) * hit_.color / 255.0;
+		//		// do lighting calcs for the indirect lighting too
+		//		//indirect += vec3(hit_.color/255.0);
+		//	}
+
+		//}
+
+		//indirect /= float(numVecs);
 
 		// direct lighting
 
-		vec3 direct = processLighting(hit);
+		//vec3 direct = processLighting(hit);
 
-		color = vec3(-dot(dir, normal));
+		vec3 direct = vec3(1);
+
+		//color = vec3(-dot(dir, normal));
 
 		//color = indirect * hit.color;
 
@@ -317,7 +331,6 @@ void main() {
 
 	//conv = genVec3();
 
-	int mod = 7919;
 	//int mod = 50;
 
 

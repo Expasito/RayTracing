@@ -1228,6 +1228,8 @@ int main() {
 	checkErrors();
 	//exit(1);
 	
+	// bind our texture
+	glBindTexture(GL_TEXTURE_2D, texture);
 	
 	// now for the run loop
 	while (!glfwWindowShouldClose(window)) {
@@ -1347,7 +1349,6 @@ int main() {
 
 
 			// update image for opengl to draw
-			glBindTexture(GL_TEXTURE_2D, texture);
 			//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
@@ -1375,7 +1376,6 @@ int main() {
 
 
 			// update image for opengl to draw
-			glBindTexture(GL_TEXTURE_2D, texture);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
