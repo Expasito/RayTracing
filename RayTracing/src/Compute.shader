@@ -181,7 +181,7 @@ vec3 processLighting(PayLoad hit) {
 
 		// get the light data
 		Light light = Lights2.data[i];
-
+		
 		vec3 ray = light.position - hit.point;
 
 
@@ -202,7 +202,7 @@ vec3 processLighting(PayLoad hit) {
 		if (shadow == true) {
 		}
 		else {
-			float dist_ = mag(light.position - hit.point);
+			float dist_ = mag(ray);
 			result += vec3((1.0 / (dist_ * dist_) * light.intensity / 255.0));
 		}
 	}
@@ -299,9 +299,9 @@ void main() {
 
 		// direct lighting
 
-		//vec3 direct = processLighting(hit);
+		vec3 direct = processLighting(hit);
 
-		vec3 direct = vec3(1);
+		//vec3 direct = vec3(1);
 
 		//color = vec3(-dot(dir, normal));
 
@@ -320,27 +320,7 @@ void main() {
 	}
 
 
-	// now process the lighting for that pixel
-	//vec4 value = processLighting(hit);
-
-
 	vec4 value = vec4(color, 1);
-
-	// generate the random vec3
-	//vec3 conv = genVec3();
-
-	//conv = genVec3();
-
-	//int mod = 50;
-
-
-
-	//vec3 conv = vec3((genRand() % mod) /float(mod));
-
-
-	//conv = conv * 2 - 1;
-
-	//value = vec4(vec3(conv), 1);
 
 
 	imageStore(imgOutput, texelCoord, value);

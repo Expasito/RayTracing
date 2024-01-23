@@ -441,29 +441,15 @@ void addTriangle(glm::vec3 translate_, glm::vec3 rotate, glm::vec3 scale_, glm::
 
 // this returns a normal facing the correct direction
 glm::vec3 newNormal(glm::vec3 dir, glm::vec3 normal) {
-	if (dir.x > 0) {
-		normal.x = -abs(normal.x);
-	}
-	else {
-		normal.x = abs(normal.x);
-	}
 
-	if (dir.y > 0) {
-		normal.y = -abs(normal.y);
+	// direction and normal facing opposite direction, so correct
+	if (glm::dot(dir, normal) < 0) {
+		return normal;
 	}
+	// same direction so flip normal
 	else {
-		normal.y = abs(normal.y);
+		return -1.0f * normal;
 	}
-
-	if (dir.z > 0) {
-		normal.z = -abs(normal.z);
-	}
-	else {
-		normal.z = abs(normal.z);
-	}
-
-	normal = glm::normalize(normal);
-	return normal;
 }
 
 float dot(glm::vec3 a, glm::vec3 b) {
@@ -766,11 +752,6 @@ void addEdge(Node* one, Node* two, float weightX, float weightY) {
 	two->addEdge(one, weightX, weightY);
 }
 
-struct
-{
-	bool operator()(const int l, const int r) const { return l > r; }
-} customLess;
-
 
 // just raw strings, very simple shaders so will leave as a long string
 const char* vertexShaderSource = "#version 450 core\n"
@@ -821,58 +802,6 @@ void GLAPIENTRY MessageCallback(GLenum source,
 
 int main() {
 
-
-
-
-	std::priority_queue<std::pair<int, int>> pq;
-
-	pq.push(std::pair<int, int>(1, 4));
-	pq.push(std::pair<int, int>(2, 4));
-	pq.push(std::pair<int, int>(1, 5));
-	pq.push(std::pair<int, int>(2, 5));
-
-
-
-
-	while (pq.empty() == false) {
-		std::pair<int, int> p = pq.top();
-		pq.pop();
-
-		std::cout << p.first << " " << p.second << "\n";
-	}
-
-
-
-	//exit(1);
-
-	Node n("One");
-
-
-	Node n2("Two");
-
-	Node n3("Three");
-
-	Node n4("Four");
-
-	Node n5("Five");
-
-
-	
-	addEdge(&n, &n2, 10.0f, 10.0f);
-	addEdge(&n2, &n3, 20.0f, 20.0f);
-	addEdge(&n3, &n4, 5.0f, 5.0f);
-	addEdge(&n, &n5, 15.0f, 15.0f);
-
-	//n.log();
-	//n2.log();
-	//n3.log();
-	//n4.log();
-	//n5.log();
-
-	//BFS(&n);
-
-
-	//exit(1);
 
 
 	// make camera a public variable
@@ -949,8 +878,8 @@ int main() {
 
 	
 	lights.push_back({ {0,8,0},4096 });
-	lights.push_back({ {5,8,5} , 64 });
-	lights.push_back({ {9.99,9.99,9.99},128 });
+	//lights.push_back({ {5,8,5} , 64 });
+	//lights.push_back({ {9.99,9.99,9.99},128 });
 
 	
 
@@ -1030,26 +959,8 @@ int main() {
 	std::cout << compute << " " << vertex << " " << fragment << "\n";
 
 	// create the program based on the shaders provided
-	//std::vector<uint32_t> shaders;
-	//shaders.push_back(compute);
-	//shaders.push_back(vertex);
-	//shaders.push_back(fragment);
 	uint32_t programRender = genProgram({vertex, fragment});
-	//uint32_t programRender;
 	uint32_t programCompute = genProgram({compute});
-	//uint32_t programCompute = glCreateProgram();
-	//glAttachShader(programCompute, compute);
-	//glLinkProgram(programCompute);
-	//if (glIsProgram(programCompute) == GL_TRUE) {
-		//std::cout << "Is Program\n";
-	//}
-	//std::cout << (glIsProgram(programCompute) == GL_TRUE);
-	//glUseProgram(programCompute);
-	//exit(1);
-	//program = glCreateProgram();
-	//glAttachShader(program, compute);
-	//glAttachShader(program, vertex);
-	//glAttachShader(program, fragment);
 
 
 	//glLinkProgram(programCompute);
@@ -1065,6 +976,9 @@ int main() {
 	const int twidth = 800;
 	const int theight = 800;
 
+
+
+	// Set up Compute shader texture
 
 	unsigned int texture;
 	glGenTextures(1, &texture);
@@ -1085,33 +999,7 @@ int main() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	glDispatchCompute((uint32_t)twidth, (uint32_t)theight, 1);
 
-
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-
-	//float test[twidth * theight*4];
-	////glGetTexImage(0, 0, GL_RGBA32F, GL_FLOAT, sizeof(float) * 99, test);
-	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, test);
-	////exit(1);
-
-	//for (int i = 0; i < twidth*theight*4; i+=4) {
-	//	std::cout << test[i] << " " << test[i+1] << " " << test[i+2] << " " << test[i+3] << "\n";
-	//}
-	//exit(1);
-
-	//exit(1);
-
-	//glDispatchCompute(10, 10, 1);
-
-
-
-	//
-	//
-	//
-	//
-	//
 
 
 	glUseProgram(programRender);
@@ -1239,7 +1127,7 @@ int main() {
 		
 
 		// clear the screen
-		glClearColor(0, 0, 0, 1);
+		//glClearColor(0, 0, 0, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
@@ -1316,6 +1204,8 @@ int main() {
 
 			glUniform1i(glGetUniformLocation(programCompute, "numTriangles"), triangles.size());
 			glUniform1i(glGetUniformLocation(programCompute, "numLights"), lights.size());
+			glUniform1i(glGetUniformLocation(programCompute, "numLights"), 1);
+
 
 
 
