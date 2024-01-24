@@ -1093,25 +1093,28 @@ int main() {
 
 	//exit(1);
 
-	Light lightArr[4];
-	lightArr[0] = { {0.0,0.0,9.99}, 5000 };
-	//lightArr[0] = lights.at(0);
-	lightArr[1] = { {0.0,1.0,0.0}, 0 };
-	lightArr[2] = { {0,100,0}, 0 };
 
 	uint32_t testBuff;
 	glGenBuffers(1, &testBuff);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, testBuff);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Light) * 3, lightArr, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Light) * lights.size(), &lights[0], GL_STATIC_DRAW);
+
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, testBuff);
 
 	uint32_t ubo;
 	glGenBuffers(1, &ubo);
 	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light) * 3, lightArr, GL_STATIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light) * lights.size(), &lights[0], GL_STATIC_DRAW);
+
 	glBindBufferBase(GL_UNIFORM_BUFFER, 3, ubo);
 
-	//glBindBufferBase(GL_UNIFORM_BUFFER, 4, ubo);
+	uint32_t ssboTriangles;
+	glGenBuffers(1, &ssboTriangles);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssboTriangles);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Triangle) * triangles.size(), &triangles[0], GL_STATIC_DRAW);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssboTriangles);
+
 
 	checkErrors();
 	//exit(1);
@@ -1162,15 +1165,11 @@ int main() {
 
 		bool GPU = true;
 
-			//checkErrors();
-			//exit(1);
 		if (GPU) {
 
 
 
 			glUseProgram(programCompute);
-
-			glUniform1f(glGetUniformLocation(programCompute, "testFloat"), counter);
 
 			for (int i = 0; i < triangles.size(); i++) {
 				Triangle triangle = triangles.at(i);
@@ -1243,6 +1242,8 @@ int main() {
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 		else {
+
+
 			//// keep this just in case
 			//for (int y = 0; y <height; y++) {
 			//	for (int x = 0; x < width; x++) {

@@ -6,7 +6,6 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 // define how we get the data out of the CS shader. Binding = 0 means we use texture0
 layout(rgba32f, binding = 0) uniform image2D imgOutput;
 
-uniform float testFloat;
 
 uniform vec3 cameraPosition;
 uniform mat4 trans;
@@ -40,10 +39,13 @@ struct Triangle {
 	vec3 p;
 	vec3 n;
 
+
 	vec3 p1, p2, p3;
 	vec3 edge0, edge1, edge2;
 
 	vec3 color;
+
+	float shininess;
 
 };
 
@@ -64,7 +66,12 @@ layout(std140, binding = 3) uniform lights2
 } Lights2;
 
 
-uniform Triangle triangles[50];
+layout(std140, binding = 4) buffer triangles2
+{
+	Triangle data[50];
+} Triangles2;
+
+//uniform Triangle triangles[50];
 
 //uniform Light lights[25];
 
@@ -139,7 +146,8 @@ PayLoad castRay(vec3 orgin, vec3 dir, int index) {
 		}
 
 
-		Triangle cur = triangles[i];
+		//Triangle cur = triangles[i];
+		Triangle cur = Triangles2.data[i];
 
 		float t = dot(cur.p1 - orgin, cur.n) / dot(dir, cur.n);
 		if (t < 0) {
@@ -249,7 +257,8 @@ void main() {
 	if (hit.didHit == true) {
 
 		// get the triangle hit and its normal
-		Triangle t = triangles[hit.index];
+		//Triangle t = triangles[hit.index];
+		Triangle t = Triangles2.data[hit.index];
 		vec3 normal = t.n;
 
 		// if the dot of the direction vector and normal is negative, flip the normal
@@ -261,6 +270,16 @@ void main() {
 
 		// calculate the indirect lighting
 		vec3 indirect = vec3(0.0);
+
+
+
+		// We need to get the angle from the vector to each axis and then undo it
+
+		vec3 newVec = normal;
+
+
+		vec3 x = vec3(1, 0, 0);
+
 		//int numVecs = 0;
 		//for (int i = 0; i < numVecs; i++) {
 
